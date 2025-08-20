@@ -1,11 +1,15 @@
 import {Request, Response} from "express";
 import Stripe from "stripe";
-import * as functions from "firebase-functions";
+import "dotenv/config";
+// import * as functions from "firebase-functions";
 
-const stripeSecret = functions.config().stripe.secret;
+// const stripeSecret = functions.config().stripe.secret;
 // const webhookSecret = functions.config().stripe.webhook;
+const stripeSecret = process.env.STRIPE_SECRET_KEY;
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-const webhookSecret = functions.config().stripe.secret;
+if (!stripeSecret) throw new Error("STRIPE_SECRET not defined");
+if (!webhookSecret) throw new Error("STRIPE_WEBHOOK not defined");
 
 const stripe = new Stripe(stripeSecret, {apiVersion: "2025-07-30.basil"});
 const endpointSecret = webhookSecret;

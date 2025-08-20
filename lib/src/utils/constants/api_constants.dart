@@ -2,7 +2,7 @@ class APIConstants {
   APIConstants._();
 
   // Base URL for your backend API
-  static const String baseUrl = 'https://your-backend-api.com/api';
+  static const String baseUrl = 'https://us-central1-workshop-management-syst-b9cec.cloudfunctions.net/api';
 
   // Stripe endpoints
   static const String createPaymentIntent = '$baseUrl/create-payment-intent';

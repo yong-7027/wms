@@ -21,7 +21,7 @@ void main() async {
   Stripe.urlScheme = 'com.example.wms'; // For redirects
 
   /// -- Await Splash until other items load
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  // FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   /// -- Initialize Firebase & Authentication Repository
   if (kIsWeb) {

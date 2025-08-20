@@ -1,8 +1,11 @@
 import {Request, Response} from "express";
 import Stripe from "stripe";
-import * as functions from "firebase-functions";
+import "dotenv/config";
+// import * as functions from "firebase-functions";
 
-const stripeSecret = functions.config().stripe.secret;
+// const stripeSecret = functions.config().stripe.secret;
+const stripeSecret = process.env.STRIPE_SECRET_KEY;
+if (!stripeSecret) throw new Error("STRIPE_SECRET not defined");
 
 const stripe = new Stripe(stripeSecret, {apiVersion: "2025-07-30.basil"});
 

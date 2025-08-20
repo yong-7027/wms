@@ -15,8 +15,10 @@ class PaymentController extends GetxController {
   final RxBool isProcessingPayment = false.obs;
   final Rx<SubscriptionPlanModel> selectedPlan = SubscriptionPlanModel.empty().obs;
 
-  // Your Firebase Cloud Function URL
-  static const String baseUrl = 'https://your-region-your-project-id.cloudfunctions.net/api';
+  // FIXED: Correct Firebase Cloud Function URLs
+  static const String baseUrl = 'https://us-central1-workshop-management-syst-b9cec.cloudfunctions.net/api';
+  static const String createPaymentIntentUrl = '$baseUrl/createPaymentIntent';
+  static const String webhookUrl = '$baseUrl/stripeWebhook';
 
   @override
   void onInit() {
@@ -91,7 +93,7 @@ class PaymentController extends GetxController {
       await Stripe.instance.initPaymentSheet(
         paymentSheetParameters: SetupPaymentSheetParameters(
           paymentIntentClientSecret: paymentIntent['client_secret'],
-          merchantDisplayName: 'Your App Name',
+          merchantDisplayName: 'Workshop Management System',
           customerId: paymentIntent['customer_id'],
           customerEphemeralKeySecret: paymentIntent['ephemeral_key'],
           style: ThemeMode.system,
@@ -124,26 +126,32 @@ class PaymentController extends GetxController {
   /// Create Payment Intent on Firebase Cloud Function
   Future<Map<String, dynamic>?> _createPaymentIntent() async {
     try {
+      print('Making request to: $createPaymentIntentUrl'); // Debug log
+
       final response = await http.post(
-        Uri.parse('$baseUrl/createPaymentIntent'),
+        Uri.parse(createPaymentIntentUrl),
         headers: {
           'Content-Type': 'application/json',
         },
         body: json.encode({
           'amount': (selectedPlan.value.price * 100).toInt(), // Amount in cents
           'currency': selectedPlan.value.currency.toLowerCase(),
-          'planId': selectedPlan.value.planId, // Changed from plan_id to planId
+          'planId': selectedPlan.value.planId,
           // Add user ID if available from your auth system
           // 'userId': FirebaseAuth.instance.currentUser?.uid,
         }),
       );
 
+      print('Response status: ${response.statusCode}'); // Debug log
+      print('Response body: ${response.body}'); // Debug log
+
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        throw Exception('Failed to create payment intent: ${response.statusCode}');
+        throw Exception('Failed to create payment intent: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
+      print('Error in _createPaymentIntent: $e'); // Debug log
       Get.snackbar('Error', 'Failed to initialize payment: $e');
       return null;
     }
