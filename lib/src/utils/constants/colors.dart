@@ -51,13 +51,5 @@ class TColors {
   static const Color tCardBgColor = Color(0xfff7f6f1);
   // static const Color tWhiteColor = Color(0xffffffff);
   // static const Color tDarkColor = Color(0xff000000);
-
-  // Additional colors for feedback UI
-  static const Color orange = Color(0xffff8c00);
-  static const Color lightOrange = Color(0xfffff4e6);
-  static const Color green = Color(0xff4caf50);
-  static const Color lightGreen = Color(0xffe8f5e8);
-  static const Color red = Color(0xfff44336);
-  static const Color lightRed = Color(0xffffebee);
 }
 
