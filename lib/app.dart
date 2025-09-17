@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:wms/src/features/service_feedback/views/make_feedback/make_service_feedback.dart';
+import 'package:wms/src/features/service_feedback/views/my_feedback/my_feedback.dart';
+import 'package:wms/src/features/service_feedback/views/my_feedback/my_service_feedback.dart';
 
 import 'src/bindings/general_bindings.dart';
 import 'src/features/authentication/views/onboarding/onboarding.dart';
@@ -20,7 +23,7 @@ class App extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       defaultTransition: Transition.rightToLeftWithFade,
       transitionDuration: const Duration(milliseconds: 500),
-      home: PaymentMethodScreen(),
+      home: MyServiceFeedbackPage(),
     );
   }
 }

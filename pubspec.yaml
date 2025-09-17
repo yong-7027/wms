@@ -79,12 +79,6 @@ dependencies:
   #-- PAYMENT METHOD
   flutter_stripe: ^11.5.0
 
-  # State Management
-  get: ^4.6.6
-
-  # Image/Media Picker
-  image_picker: ^1.0.4
-
   # Optional: For video thumbnail generation
   video_thumbnail: ^0.5.3
 
@@ -93,6 +87,8 @@ dependencies:
 
   # Optional: For better image handling
   cached_network_image: ^3.3.0
+  confetti: ^0.8.0
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
