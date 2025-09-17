@@ -3,31 +3,34 @@ import 'package:get/get.dart';
 import 'package:icons_plus/icons_plus.dart';
 import '../../../utils/constants/colors.dart';
 import '../../../utils/helpers/helper_functions.dart';
+import '../controllers/payment_controller.dart';
+import '../models/invoice_model.dart';
 import '../models/payment_transaction_model.dart';
-import '../models/subscription_plan_model.dart';
+import 'invoice_detail_screen.dart';
 
-class PaymentSuccessScreen extends StatelessWidget {
-  const PaymentSuccessScreen({super.key});
+class InvoicePaymentSuccessScreen extends StatelessWidget {
+  const InvoicePaymentSuccessScreen({
+    super.key,
+    required this.transaction,
+    required this.invoice
+  });
+
+  final PaymentTransactionModel transaction;
+  final InvoiceModel invoice;
 
   @override
   Widget build(BuildContext context) {
     final darkMode = THelperFunctions.isDarkMode(context);
-
-    // Get arguments passed from payment controller
-    final arguments = Get.arguments as Map<String, dynamic>?;
-    final PaymentTransactionModel transaction =
-        arguments?['transaction'] ?? PaymentTransactionModel.empty();
-    final SubscriptionPlanModel plan =
-        arguments?['plan'] ?? SubscriptionPlanModel.empty();
+    final controller = Get.find<PaymentController>();
 
     return Scaffold(
       backgroundColor: darkMode ? TColors.black : TColors.white,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              const SizedBox(height: 60),
+              const SizedBox(height: 40),
 
               // Success Animation Container
               Container(
@@ -75,7 +78,7 @@ class PaymentSuccessScreen extends StatelessWidget {
 
               // Success Subtitle
               Text(
-                'Your subscription has been activated successfully',
+                'Your invoice has been paid successfully',
                 style: TextStyle(
                   fontSize: 16,
                   color: darkMode ? Colors.grey[400] : Colors.grey[600],
@@ -117,7 +120,7 @@ class PaymentSuccessScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'Transaction Details',
+                          'Payment Details',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -140,10 +143,10 @@ class PaymentSuccessScreen extends StatelessWidget {
 
                     const SizedBox(height: 16),
 
-                    // Plan Name
+                    // Invoice Number
                     _DetailRow(
-                      label: 'Plan',
-                      value: plan.name.isNotEmpty ? plan.name : 'Premium Plan',
+                      label: 'Invoice',
+                      value: '#${invoice.invoiceId.substring(0, 8).toUpperCase()}',
                       darkMode: darkMode,
                     ),
 
@@ -151,8 +154,8 @@ class PaymentSuccessScreen extends StatelessWidget {
 
                     // Amount
                     _DetailRow(
-                      label: 'Amount',
-                      value: plan.price > 0 ? plan.formattedPrice : 'RM29',
+                      label: 'Amount Paid',
+                      value: 'RM${transaction.amount.toStringAsFixed(2)}',
                       darkMode: darkMode,
                       isAmount: true,
                     ),
@@ -170,7 +173,7 @@ class PaymentSuccessScreen extends StatelessWidget {
 
                     // Date
                     _DetailRow(
-                      label: 'Date',
+                      label: 'Payment Date',
                       value: _formatDate(transaction.transactionDateTime),
                       darkMode: darkMode,
                     ),
@@ -178,81 +181,110 @@ class PaymentSuccessScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-              // Plan Benefits
-              if (plan.features.isNotEmpty) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: TColors.primary.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: TColors.primary.withOpacity(0.2),
-                    ),
+              // Invoice Summary Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: TColors.primary.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: TColors.primary.withOpacity(0.2),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Iconsax.document_text_bold,
+                          color: TColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Invoice Summary',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: darkMode ? Colors.white : Colors.black,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Show first few items
+                    ...invoice.items.take(3).map((item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
                         children: [
-                          const Icon(
-                            Iconsax.crown_1_bold,
-                            color: TColors.primary,
-                            size: 20,
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: item.type == 'service'
+                                  ? Colors.blue.withOpacity(0.1)
+                                  : Colors.orange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Icon(
+                              item.type == 'service' ? Iconsax.setting_2_bold : Iconsax.box_bold,
+                              size: 12,
+                              color: item.type == 'service' ? Colors.blue : Colors.orange,
+                            ),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            'Your Benefits',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: darkMode ? Colors.white : Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      ...plan.features.take(3).map((feature) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.check_circle,
-                              color: Colors.green,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              feature,
+                          Expanded(
+                            child: Text(
+                              item.description,
                               style: TextStyle(
                                 fontSize: 14,
                                 color: darkMode ? Colors.grey[300] : Colors.grey[700],
                               ),
                             ),
-                          ],
-                        ),
-                      )),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-              ],
+                          ),
+                          Text(
+                            'RM${item.itemTotal.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: TColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )),
 
-              const Spacer(),
+                    if (invoice.items.length > 3) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '... and ${invoice.items.length - 3} more items',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                          color: darkMode ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
 
               // Action Buttons
               Column(
                 children: [
-                  // Continue Button
+                  // View Invoice Button
                   SizedBox(
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
                       onPressed: () {
-                        // Navigate to home or main app screen
-                        Get.offAllNamed('/home');
+                        Get.to(() => InvoiceDetailScreen(invoiceId: invoice.invoiceId));
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: TColors.primary,
@@ -262,12 +294,19 @@ class PaymentSuccessScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        'Continue',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Iconsax.document_text_bold, size: 18),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'View Invoice',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -279,13 +318,8 @@ class PaymentSuccessScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 56,
                     child: OutlinedButton(
-                      onPressed: () {
-                        // TODO: Implement download receipt functionality
-                        Get.snackbar(
-                          'Info',
-                          'Receipt download feature coming soon',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
+                      onPressed: () async {
+                        await controller.exportInvoiceReceipt(transaction, invoice);
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: TColors.primary,
@@ -298,10 +332,9 @@ class PaymentSuccessScreen extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.download,
                             size: 18,
-                            color: TColors.primary,
                           ),
                           const SizedBox(width: 8),
                           const Text(
@@ -315,8 +348,37 @@ class PaymentSuccessScreen extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  const SizedBox(height: 16),
+
+                  // Done Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: TextButton(
+                      onPressed: () {
+                        // Navigate back to home or appointments list
+                        Get.offAll(() => InvoiceDetailScreen(invoiceId: invoice.invoiceId));
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: darkMode ? Colors.grey[400] : Colors.grey[600],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Done',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
+
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -341,7 +403,7 @@ class PaymentSuccessScreen extends StatelessWidget {
     if (dateTime.year == 0) {
       return DateTime.now().toString().split('.')[0];
     }
-    return dateTime.toString().split('.')[0];
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }
 

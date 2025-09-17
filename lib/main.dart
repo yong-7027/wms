@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -5,13 +6,15 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:printing/printing.dart';
 
 import 'app.dart';
 import 'firebase_options.dart';
 
 void main() async {
   /// Widgets Binding
-  final WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  // final WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
 
   /// -- GetX Local Storage
   await GetStorage.init();
@@ -19,6 +22,8 @@ void main() async {
   /// -- Initialize Stripe
   Stripe.publishableKey = 'pk_test_51RxrvGFLRUQjWHbT4A7B9QNPwDdjKCbYAOZgvVQqXKdZp1Wg4vWgjCQXfDAnSSZCqIwwsBrhBndCz6nPS9oER7gU00oHcguBrs';
   Stripe.urlScheme = 'com.example.wms'; // For redirects
+
+  await Stripe.instance.applySettings();
 
   /// -- Await Splash until other items load
   // FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
@@ -38,6 +43,23 @@ void main() async {
   } else {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
         // .then((FirebaseApp value) => Get.put(AuthenticationRepository())); // Get.put() 会将 AuthenticationRepository 放入 GetX 的依赖注入系统中，确保可以在应用的任何地方访问到 AuthenticationRepository 实例
+  }
+
+  /// -- 登录固定账号
+  final auth = FirebaseAuth.instance;
+  try {
+    const email = 'testuser@example.com';
+    const password = '123456';
+
+    // 尝试登录
+    final userCredential = await auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+
+    print('Logged in as: ${userCredential.user?.email}');
+  } on FirebaseAuthException catch (e) {
+    print('Login failed: ${e.message}');
   }
 
   // FirebaseAppCheck.instance.setTokenAutoRefreshEnabled(true);

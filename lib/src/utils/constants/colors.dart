@@ -22,7 +22,7 @@ class TColors {
 
   /* -- Background Container Colors -- */
   static const Color lightContainer = Color(0xfff6f6f6);
-  static Color  darkContainer = Colors.white.withValues(alpha: 0.1);
+  static Color darkContainer = Colors.white.withOpacity(0.1);
 
   /* -- Button Colors -- */
   static const Color buttonPrimary = Color(0xff017aff);
@@ -48,8 +48,20 @@ class TColors {
   static const Color lightGrey = Color(0xfff9f9f9);
   static const Color white = Color(0xffffffff);
 
-  static const Color tCardBgColor = Color(0xfff7f6f1);
-  // static const Color tWhiteColor = Color(0xffffffff);
-  // static const Color tDarkColor = Color(0xff000000);
-}
+  /* -- Additional Colors for Invoice System -- */
+  static const Color invoicePaid = Color(0xff4caf50);
+  static const Color invoiceUnpaid = Color(0xffff9800);
+  static const Color invoiceOverdue = Color(0xfff44336);
+  static const Color invoiceVoid = Color(0xff9e9e9e);
 
+  /* -- Service Type Colors -- */
+  static const Color serviceColor = Color(0xff2196f3);
+  static const Color partColor = Color(0xffff9800);
+
+  /* -- Payment Method Colors -- */
+  static const Color stripeColor = Color(0xff635bff);
+  static const Color paypalColor = Color(0xff00457c);
+  static const Color razorpayColor = Color(0xff528ff0);
+
+  static const Color tCardBgColor = Color(0xfff7f6f1);
+}

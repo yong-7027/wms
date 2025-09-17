@@ -65,6 +65,13 @@ class THelperFunctions extends GetxController {
     }
   }
 
+  static String titleCase(String s) {
+    return s.split(RegExp(r'[\s_]')).map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1);
+    }).join(' '); // join 用空格连接
+  }
+
   static bool isDarkMode(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark;
   }

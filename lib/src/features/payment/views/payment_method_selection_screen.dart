@@ -3,15 +3,22 @@ import 'package:get/get.dart';
 import 'package:icons_plus/icons_plus.dart';
 import '../../../utils/constants/colors.dart';
 import '../../../utils/helpers/helper_functions.dart';
+import '../controllers/invoice_controller.dart';
 import '../controllers/payment_controller.dart';
 
 class PaymentMethodScreen extends StatelessWidget {
-  const PaymentMethodScreen({super.key});
+  final String invoiceId;
+
+  const PaymentMethodScreen({super.key, required this.invoiceId});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(PaymentController());
+    final paymentController = Get.put(PaymentController());
+    final invoiceController = Get.put(InvoiceController());
     final darkMode = THelperFunctions.isDarkMode(context);
+
+    // Load invoice details and set it in payment controller
+    invoiceController.loadInvoiceDetails(invoiceId);
 
     final paymentMethods = [
       {
@@ -89,10 +96,22 @@ class PaymentMethodScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
 
-            // Selected Plan Summary
+            // Invoice Summary
             Obx(() {
-              final selectedPlan = controller.selectedPlan.value;
-              if (selectedPlan.planId.isEmpty) return const SizedBox();
+              final invoice = invoiceController.currentInvoice.value;
+              if (invoice.invoiceId.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.all(20),
+                  margin: const EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(
+                    color: darkMode ? TColors.darkContainer : TColors.lightContainer,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Center(
+                    child: CircularProgressIndicator(color: TColors.primary),
+                  ),
+                );
+              }
 
               return Container(
                 padding: const EdgeInsets.all(20),
@@ -104,51 +123,112 @@ class PaymentMethodScreen extends StatelessWidget {
                     color: TColors.primary.withOpacity(0.3),
                   ),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: TColors.primary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Iconsax.crown_1_bold,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            selectedPlan.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: TColors.primary,
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${selectedPlan.formattedPrice}/${selectedPlan.displayDuration}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: darkMode ? Colors.grey[400] : Colors.grey[600],
-                            ),
+                          child: const Icon(
+                            Iconsax.receipt_1_bold,
+                            color: Colors.white,
+                            size: 20,
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Invoice #${invoice.invoiceId.substring(0, 8).toUpperCase()}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${invoice.items.length} item${invoice.items.length > 1 ? 's' : ''}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: darkMode ? Colors.grey[400] : Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          'RM${invoice.totalAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: TColors.primary,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      selectedPlan.formattedPrice,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: TColors.primary,
-                      ),
-                    ),
+
+                    if (invoice.items.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      const Divider(color: TColors.primary, thickness: 0.5),
+                      const SizedBox(height: 16),
+
+                      // Show first few items
+                      ...invoice.items.take(3).map((item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: item.type == 'service'
+                                    ? Colors.blue.withOpacity(0.2)
+                                    : Colors.orange.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Icon(
+                                item.type == 'service' ? Iconsax.setting_2_bold : Iconsax.box_bold,
+                                size: 12,
+                                color: item.type == 'service' ? Colors.blue : Colors.orange,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                item.description,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: darkMode ? Colors.grey[300] : Colors.grey[700],
+                                ),
+                              ),
+                            ),
+                            Text(
+                              'RM${item.itemTotal.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: darkMode ? Colors.grey[300] : Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+
+                      if (invoice.items.length > 3)
+                        Text(
+                          '... and ${invoice.items.length - 3} more items',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: darkMode ? Colors.grey[400] : Colors.grey[600],
+                          ),
+                        ),
+                    ],
                   ],
                 ),
               );
@@ -170,7 +250,7 @@ class PaymentMethodScreen extends StatelessWidget {
                       subtitle: method['subtitle']!,
                       iconPath: method['icon']!,
                       darkMode: darkMode,
-                      controller: controller,
+                      controller: paymentController,
                     ),
                   );
                 },
@@ -183,9 +263,10 @@ class PaymentMethodScreen extends StatelessWidget {
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
-                onPressed: controller.selectedPaymentMethod.value.isNotEmpty &&
-                    !controller.isProcessingPayment.value
-                    ? controller.confirmPayment
+                onPressed: paymentController.selectedPaymentMethod.value.isNotEmpty &&
+                    !paymentController.isProcessingPayment.value &&
+                    invoiceController.currentInvoice.value.invoiceId.isNotEmpty
+                    ? () => paymentController.confirmInvoicePayment(invoiceId)
                     : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: TColors.primary,
@@ -196,22 +277,27 @@ class PaymentMethodScreen extends StatelessWidget {
                   ),
                   disabledBackgroundColor: darkMode ? Colors.grey[800] : Colors.grey[200],
                 ),
-                child: controller.isProcessingPayment.value
+                child: paymentController.isProcessingPayment.value
                     ? const SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(TColors.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                   ),
                 )
-                    : const Text(
-                  'Confirm payment',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                    : Obx(() {
+                  final invoice = invoiceController.currentInvoice.value;
+                  return Text(
+                    invoice.invoiceId.isNotEmpty
+                        ? 'Pay RM${invoice.totalAmount.toStringAsFixed(2)}'
+                        : 'Confirm payment',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                }),
               ),
             )),
           ],

@@ -4,14 +4,16 @@ import '../../../utils/constants/firebase_field_names.dart';
 
 class PaymentTransactionModel {
   final String transactionId;
+  final String invoiceId;
   final double amount;
   final String currency;
   final String paymentMethod;
   final DateTime transactionDateTime;
-  final String status;
+  final String status;  // 'succeeded', 'pending', 'failed'
 
   PaymentTransactionModel({
     required this.transactionId,
+    required this.invoiceId,
     required this.amount,
     required this.currency,
     required this.paymentMethod,
@@ -23,6 +25,7 @@ class PaymentTransactionModel {
   static PaymentTransactionModel empty() {
     return PaymentTransactionModel(
       transactionId: '',
+      invoiceId: '',
       amount: 0.0,
       currency: '',
       paymentMethod: '',
@@ -35,6 +38,7 @@ class PaymentTransactionModel {
   Map<String, dynamic> toJson() {
     return {
       FirebaseFieldNames.transactionId: transactionId,
+      FirebaseFieldNames.invoiceId: invoiceId,
       FirebaseFieldNames.amount: amount,
       FirebaseFieldNames.currency: currency,
       FirebaseFieldNames.paymentMethod: paymentMethod,
@@ -52,6 +56,7 @@ class PaymentTransactionModel {
 
     return PaymentTransactionModel(
       transactionId: data[FirebaseFieldNames.transactionId] ?? '',
+      invoiceId: data[FirebaseFieldNames.invoiceId] ?? '',
       amount: (data[FirebaseFieldNames.amount] ?? 0).toDouble(),
       currency: data[FirebaseFieldNames.currency] ?? '',
       paymentMethod: data[FirebaseFieldNames.paymentMethod] ?? '',
@@ -65,6 +70,7 @@ class PaymentTransactionModel {
   factory PaymentTransactionModel.fromMap(Map<String, dynamic> data) {
     return PaymentTransactionModel(
       transactionId: data[FirebaseFieldNames.transactionId] ?? '',
+      invoiceId: data[FirebaseFieldNames.invoiceId] ?? '',
       amount: (data[FirebaseFieldNames.amount] ?? 0).toDouble(),
       currency: data[FirebaseFieldNames.currency] ?? '',
       paymentMethod: data[FirebaseFieldNames.paymentMethod] ?? '',

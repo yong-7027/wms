@@ -13,4 +13,8 @@ class TTexts {
   static const String onBoardingCounter1 = "1/3";
   static const String onBoardingCounter2 = "2/3";
   static const String onBoardingCounter3 = "3/3";
+
+  // -- Error Message
+  static const String commonErrorMessage = "Something went wrong. Please try again.";
+  static const String networkErrorMessage = "You're offline. Please check your network connection and try again.";
 }

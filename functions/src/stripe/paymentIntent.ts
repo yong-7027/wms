@@ -1,36 +1,55 @@
 import {Request, Response} from "express";
 import Stripe from "stripe";
 import "dotenv/config";
-// import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
 
-// const stripeSecret = functions.config().stripe.secret;
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecret) throw new Error("STRIPE_SECRET not defined");
 
-const stripe = new Stripe(stripeSecret, {apiVersion: "2025-07-30.basil"});
+const stripe = new Stripe(stripeSecret, {apiVersion: "2024-06-20" as any});
 
 export const createPaymentIntent = async (
   req: Request,
   res: Response
-) => {
+): Promise<Response> => {
   try {
-    const {amount, currency, planId, userId} = req.body;
-
-    let customer: Stripe.Customer | undefined;
-    if (userId) {
-      const customers = await stripe.customers.list({limit: 1});
-      customer = customers.data.length > 0 ?
-        customers.data[0] :
-        await stripe.customers.create({
-          metadata: {userId, planId},
-        });
+    // 1. 解析 Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res.status(401).json({error: "Unauthorized: Missing or invalid token"});
     }
 
+    const idToken = authHeader.split("Bearer ")[1];
+
+    // 2. 验证 token
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const uid = decodedToken.uid;
+
+    // 3. 获取请求体
+    const {amount, currency, planId} = req.body;
+
+    // 4. 创建或获取 customer
+    const customers = await stripe.customers.list({
+      limit: 1,
+      email: decodedToken.email,
+    });
+
+    let customer: Stripe.Customer;
+    if (customers.data.length > 0) {
+      customer = customers.data[0];
+    } else {
+      customer = await stripe.customers.create({
+        metadata: {uid, planId},
+        email: decodedToken.email,
+      });
+    }
+
+    // 5. 创建 PaymentIntent
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
       currency,
-      customer: customer ? customer.id : undefined,
-      metadata: {planId, userId: userId || ""},
+      customer: customer.id,
+      metadata: {planId, uid},
       automatic_payment_methods: {enabled: true},
     });
 
@@ -38,20 +57,20 @@ export const createPaymentIntent = async (
     if (customer) {
       ephemeralKey = await stripe.ephemeralKeys.create(
         {customer: customer.id},
-        {apiVersion: "2025-07-30"}
+        {apiVersion: "2024-06-20"}
       );
     }
 
-    res.json({
+    return res.json({
       id: paymentIntent.id,
       client_secret: paymentIntent.client_secret,
-      customer_id: customer ? customer.id : null,
+      customer_id: customer.id,
       ephemeral_key: ephemeralKey ? ephemeralKey.secret : null,
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Error creating payment intent:", error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to create payment intent",
       details: errorMessage,
     });
