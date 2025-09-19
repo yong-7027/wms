@@ -85,6 +85,12 @@ class TColors {
   static const Color blue = Color(0xff2196f3);
   static const Color indigo = Color(0xff3f51b5);
 
+  // Additional colors for feedback UI
+  // static const Color orange = Color(0xffff8c00);
+  static const Color lightOrange = Color(0xfffff4e6);
+  static const Color lightGreen = Color(0xffe8f5e8);
+  static const Color lightRed = Color(0xffffebee);
+
   // Gradient colors
   static const Gradient linerGradient = LinearGradient(
     begin: Alignment(0.0, 0.0),
