@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:io';
@@ -7,16 +6,18 @@ import 'widgets/comment_section.dart';
 import 'widgets/media_upload_section.dart';
 import 'widgets/service_info.dart';
 import 'widgets/star_rating_section.dart';
+import '../../models/service_feedback_model.dart'; // Import the model
 
 class MakeServiceFeedbackScreen extends StatelessWidget {
-  const MakeServiceFeedbackScreen({super.key});
+  final ServiceFeedbackModel feedback;
+
+  const MakeServiceFeedbackScreen({super.key, required this.feedback});
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(ServiceFeedbackController());
+    final controller = Get.put(ServiceFeedbackController(feedback: feedback));
 
     return Scaffold(
-      // backgroundColor: Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
@@ -39,11 +40,11 @@ class MakeServiceFeedbackScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ServiceInfo(),
+            ServiceInfo(feedback: feedback),
             SizedBox(height: 24),
             StarRatingSection(),
             SizedBox(height: 24),
-            MediaUploadSection(),
+            MediaUploadSection(feedback: feedback),
             SizedBox(height: 24),
             CommentSection(),
             SizedBox(height: 32),
@@ -55,19 +56,22 @@ class MakeServiceFeedbackScreen extends StatelessWidget {
   }
 }
 
-// Upload Placeholder Widget
-class UploadPlaceholderWidget extends StatelessWidget {
-  const UploadPlaceholderWidget({super.key});
+// Add Media Button Widget with camera and gallery options
+class AddMediaButtonWidget extends StatelessWidget {
+  final ServiceFeedbackModel feedback;
+
+  const AddMediaButtonWidget({super.key, required this.feedback});
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<ServiceFeedbackController>();
 
     return GestureDetector(
-      onTap: controller.pickMedia,
+      onTap: () {
+        // 显示选择对话框
+        _showMediaSourceDialog(context, controller);
+      },
       child: Container(
-        height: 120,
-        width: double.infinity,
         decoration: BoxDecoration(
           color: Colors.grey[100],
           borderRadius: BorderRadius.circular(8),
@@ -76,139 +80,58 @@ class UploadPlaceholderWidget extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.file_upload_outlined, size: 32, color: Colors.blue[600]),
-            SizedBox(height: 8),
+            Icon(Icons.add, color: Colors.blue[600], size: 24),
+            SizedBox(height: 4),
             Text(
-              'Click here to upload',
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              'Add',
+              style: TextStyle(fontSize: 10, color: Colors.blue[600]),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-// Media Grid Widget
-class MediaGridWidget extends StatelessWidget {
-  const MediaGridWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = Get.find<ServiceFeedbackController>();
-
-    return Column(
-      children: [
-        GridView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-          ),
-          itemCount:
-              controller.uploadedMedia.length +
-              (controller.remainingMediaSlots > 0 ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index < controller.uploadedMedia.length) {
-              return MediaItemWidget(
-                file: controller.uploadedMedia[index],
-                index: index,
-              );
-            } else {
-              return AddMediaButtonWidget();
-            }
-          },
-        ),
-      ],
-    );
-  }
-}
-
-// Media Item Widget
-class MediaItemWidget extends StatelessWidget {
-  final File file;
-  final int index;
-
-  const MediaItemWidget({super.key, required this.file, required this.index});
-
-  @override
-  Widget build(BuildContext context) {
-    String extension = file.path.split('.').last.toLowerCase();
-    bool isVideo = ['mp4', 'mov'].contains(extension);
-    final controller = Get.find<ServiceFeedbackController>();
-
-    return GestureDetector(
-      onTap: () => controller.showMediaPreview(file, index),
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              child: isVideo
-                  ? Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Container(
-                          color: Colors.grey[300],
-                          child: Icon(
-                            Icons.video_library,
-                            size: 40,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        Icon(
-                          Icons.play_circle_outline,
-                          size: 30,
-                          color: Colors.blue[600],
-                        ),
-                      ],
-                    )
-                  : Image.file(file, fit: BoxFit.cover),
-            ),
-          ),
-          Positioned(
-            top: 4,
-            right: 4,
-            child: GestureDetector(
-              onTap: () => controller.removeMedia(index),
-              child: Container(
-                padding: EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(Icons.close, color: Colors.white, size: 16),
+  void _showMediaSourceDialog(BuildContext context, ServiceFeedbackController controller) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: Icon(Icons.camera_alt, color: Colors.blue),
+                title: Text('Take Photo'),
+                onTap: () {
+                  Navigator.pop(context);
+                  controller.pickMediaFromCamera();
+                },
               ),
-            ),
+              ListTile(
+                leading: Icon(Icons.videocam, color: Colors.blue),
+                title: Text('Record Video'),
+                onTap: () {
+                  Navigator.pop(context);
+                  controller.pickMediaFromCamera();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library, color: Colors.blue),
+                title: Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.pop(context);
+                  controller.pickMediaFromGallery();
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.cancel, color: Colors.grey),
+                title: Text('Cancel'),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// Add Media Button Widget
-class AddMediaButtonWidget extends StatelessWidget {
-  const AddMediaButtonWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = Get.find<ServiceFeedbackController>();
-
-    return GestureDetector(
-      onTap: controller.pickMedia,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: Icon(Icons.add, color: Colors.blue[600], size: 32),
-      ),
+        );
+      },
     );
   }
 }
@@ -249,5 +172,3 @@ class SubmitButtonWidget extends StatelessWidget {
     });
   }
 }
-
-

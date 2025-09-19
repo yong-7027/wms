@@ -32,7 +32,7 @@ dependencies:
     sdk: flutter
 
   #-- UTILITY PACKAGES
-  http: ^1.3.0
+  http: ^1.5.0
   intl: ^0.20.2
   logger: ^2.5.0
   lottie: ^3.3.1
@@ -50,7 +50,7 @@ dependencies:
 
   #-- MEDIA PROCESSING PACKAGES
   image_picker: ^1.1.2  # pick images
-  video_player: ^2.9.2  # play videos
+  video_player: ^2.10.0  # play videos
   story_view: ^0.16.5  # for displaying the stories
 
   #-- STATE MANAGEMENT PACKAGES
@@ -97,6 +97,8 @@ dependencies:
   cached_network_image: ^3.3.0
   confetti: ^0.8.0
   path: ^1.9.1
+  image: ^4.5.4
+  flutter_image_compress: ^2.4.0
 
 dev_dependencies:
   flutter_test:

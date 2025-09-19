@@ -11,17 +11,6 @@ class StarRatingSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(20),
-      // decoration: BoxDecoration(
-      //   color: Colors.white,
-      //   borderRadius: BorderRadius.circular(16),
-      //   boxShadow: [
-      //     BoxShadow(
-      //       color: Colors.black.withOpacity(0.08),
-      //       blurRadius: 12,
-      //       offset: Offset(0, 4),
-      //     ),
-      //   ],
-      // ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -37,22 +26,10 @@ class StarRatingSection extends StatelessWidget {
           SizedBox(height: 16),
 
           // Rating rows
-          StarRatingRow(
-            title: 'Service Quality',
-            category: 'service',
-          ),
-          StarRatingRow(
-            title: 'Repair Efficiency',
-            category: 'repair',
-          ),
-          StarRatingRow(
-            title: 'Transparency',
-            category: 'transparency',
-          ),
-          StarRatingRow(
-            title: 'Overall Experience',
-            category: 'overall',
-          ),
+          StarRatingRow(title: 'Service Quality', category: 'service',),
+          StarRatingRow(title: 'Repair Efficiency', category: 'repair',),
+          StarRatingRow(title: 'Transparency', category: 'transparency',),
+          StarRatingRow(title: 'Overall Experience', category: 'overall',),
 
           // Validation message
           _buildValidationMessage(),

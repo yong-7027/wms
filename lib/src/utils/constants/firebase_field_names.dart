@@ -11,6 +11,9 @@ class FirebaseFieldNames {
   static const String scheduledAt = "scheduledAt";
   static const String totalPrice = "totalPrice";
   static const String vehicleInfo = "vehicleInfo";
+  static const String completedAt = "completedAt";
+  static const String hasFeedback = "hasFeedback";
+  static const String imagePath = "imagePath";
 
   // Vehicle Info Fields
   static const String licensePlate = "licensePlate";

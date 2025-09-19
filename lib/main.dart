@@ -20,10 +20,10 @@ void main() async {
   await GetStorage.init();
 
   /// -- Initialize Stripe
-  Stripe.publishableKey = 'pk_test_51RxrvGFLRUQjWHbT4A7B9QNPwDdjKCbYAOZgvVQqXKdZp1Wg4vWgjCQXfDAnSSZCqIwwsBrhBndCz6nPS9oER7gU00oHcguBrs';
-  Stripe.urlScheme = 'com.example.wms'; // For redirects
+  // Stripe.publishableKey = 'pk_test_51RxrvGFLRUQjWHbT4A7B9QNPwDdjKCbYAOZgvVQqXKdZp1Wg4vWgjCQXfDAnSSZCqIwwsBrhBndCz6nPS9oER7gU00oHcguBrs';
+  // Stripe.urlScheme = 'com.example.wms'; // For redirects
 
-  await Stripe.instance.applySettings();
+  // await Stripe.instance.applySettings();
 
   /// -- Await Splash until other items load
   // FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);

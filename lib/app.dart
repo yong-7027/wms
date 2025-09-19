@@ -7,6 +7,7 @@ import 'package:wms/src/features/service_feedback/views/my_feedback/my_service_f
 import 'src/bindings/general_bindings.dart';
 import 'src/features/authentication/views/onboarding/onboarding.dart';
 import 'src/features/payment/views/payment_method_selection_screen.dart';
+import 'src/features/service_feedback/views/user_feedback/user_feedback.dart';
 import 'src/utils/theme/theme.dart';
 
 class App extends StatelessWidget {
@@ -23,7 +24,7 @@ class App extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       defaultTransition: Transition.rightToLeftWithFade,
       transitionDuration: const Duration(milliseconds: 500),
-      home: MyServiceFeedbackPage(),
+      home: UserFeedbackScreen(),
     );
   }
 }

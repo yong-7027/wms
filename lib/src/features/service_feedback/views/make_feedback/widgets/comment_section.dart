@@ -12,17 +12,6 @@ class CommentSection extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.all(16),
-      // decoration: BoxDecoration(
-      //   color: Colors.white,
-      //   borderRadius: BorderRadius.circular(12),
-      //   boxShadow: [
-      //     BoxShadow(
-      //       color: Colors.black.withOpacity(0.05),
-      //       blurRadius: 10,
-      //       offset: Offset(0, 2),
-      //     ),
-      //   ],
-      // ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -38,7 +27,7 @@ class CommentSection extends StatelessWidget {
                 ),
               ),
               Obx(
-                    () => Text(
+                () => Text(
                   '${controller.commentLength.value}/150',
                   style: TextStyle(
                     fontSize: 14,

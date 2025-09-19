@@ -28,9 +28,8 @@ class ServiceTypeModel {
     };
   }
 
-  factory ServiceTypeModel.fromSnapshot(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final map = doc.data();
-    if (map == null) throw Exception('Service type data is null');
+  factory ServiceTypeModel.fromSnapshot(DocumentSnapshot doc) {
+    final map = doc.data() as Map<String, dynamic>;
 
     return ServiceTypeModel(
       serviceId: doc.id,

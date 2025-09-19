@@ -1,6 +1,8 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 
+import '../../../data/repository/appointment/appointment_repository.dart';
+
 void main() {
   runApp(const StarShineDemo());
 }
@@ -10,10 +12,29 @@ class StarShineDemo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       home: Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: StarRatingWidget()),
+        body: Center(
+            child: ElevatedButton(
+              onPressed: () async {
+                final repo = AppointmentRepository(); // 假设你这个函数在这里
+                final userId = "userId";
+
+                try {
+                  final appointments = await repo.getAppointmentByUserId(userId);
+                  print('📥 Got ${appointments.length} appointments:');
+                  for (final a in appointments) {
+                    print('🗂️ id=${a.appointmentId}, status=${a.status}, scheduledAt=${a.scheduledAt}');
+                  }
+                } catch (e) {
+                  print('❌ Error while fetching appointments: $e');
+                }
+              },
+              child: const Text("测试获取预约"),
+            )
+
+        ),
       ),
     );
   }

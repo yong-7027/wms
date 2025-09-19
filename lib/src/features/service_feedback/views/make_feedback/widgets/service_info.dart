@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../controllers/service_feedback_controller.dart';
+import '../../../models/service_feedback_model.dart';
 
 class ServiceInfo extends StatelessWidget {
-  const ServiceInfo({super.key});
+  final ServiceFeedbackModel feedback;
+
+  const ServiceInfo({super.key, required this.feedback});
 
   @override
   Widget build(BuildContext context) {
@@ -11,17 +14,17 @@ class ServiceInfo extends StatelessWidget {
 
     return Container(
       padding: EdgeInsets.all(16),
-      // decoration: BoxDecoration(
-      //   color: Colors.white,
-      //   borderRadius: BorderRadius.circular(12),
-      //   boxShadow: [
-      //     BoxShadow(
-      //       color: Colors.black.withOpacity(0.05),
-      //       blurRadius: 10,
-      //       offset: Offset(0, 2),
-      //     ),
-      //   ],
-      // ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
       child: Row(
         children: [
           ClipRRect(
@@ -42,41 +45,43 @@ class ServiceInfo extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Obx(() => Text(
-                  controller.serviceType.value,
+                Text(
+                  // Assuming service type is stored in feedback or derived from appointment
+                  "Service Appointment", // Replace with actual data from feedback
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
                   ),
-                )),
+                ),
                 SizedBox(height: 4),
-                Obx(() => Text(
-                  controller.carName.value,
+                Text(
+                  // Assuming car info is stored in feedback or derived from appointment
+                  "Vehicle Service", // Replace with actual data from feedback
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Colors.black54,
                   ),
-                )),
+                ),
                 SizedBox(height: 2),
-                Obx(() => Text(
-                  controller.serviceDetails.value,
+                Text(
+                  "Appointment ID: ${feedback.appointmentId}",
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],
                   ),
-                )),
+                ),
               ],
             ),
           ),
-          Obx(() => Text(
-            controller.serviceDate.value,
+          Text(
+            feedback.formattedCreatedDate,
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[600],
             ),
-          )),
+          ),
         ],
       ),
     );

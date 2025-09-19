@@ -1,191 +1,237 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../data/repository/service_feedback/service_feedback_repository.dart';
+import '../../../../utils/constants/colors.dart';
 import '../../models/service_feedback_model.dart';
-import '../../models/service_model.dart';
+import '../../views/make_feedback/make_service_feedback.dart';
 
-class MyServiceFeedbackController extends GetxController with GetSingleTickerProviderStateMixin {
+class MyServiceFeedbackController extends GetxController
+    with GetSingleTickerProviderStateMixin {
+  StreamSubscription<List<ServiceFeedbackModel>>? _pendingFeedbackSubscription;
+  StreamSubscription<List<ServiceFeedbackModel>>?
+  _submittedFeedbackSubscription;
+
   late TabController tabController;
+
+  // Dependencies
+  final ServiceFeedbackRepository _feedbackRepository =
+      ServiceFeedbackRepository();
+  // final AuthenticationRepository _authRepository = AuthenticationRepository.instance;
 
   // Reactive variables
   final RxBool isLoadingToFeedback = false.obs;
   final RxBool isLoadingMyFeedback = false.obs;
   final RxBool hasError = false.obs;
   final RxString errorMessage = ''.obs;
-  final RxList<ServiceModel> toFeedbackServices = <ServiceModel>[].obs;
-  final RxList<ServiceFeedbackModel> myFeedbackServices = <ServiceFeedbackModel>[].obs;
+
+  final RxList<ServiceFeedbackModel> toFeedbackList =
+      <ServiceFeedbackModel>[].obs;
+  final RxList<ServiceFeedbackModel> myFeedbackList =
+      <ServiceFeedbackModel>[].obs;
+  final RxList<ServiceFeedbackModel> allFeedbacks =
+      <ServiceFeedbackModel>[].obs;
+
+  final RxMap<String, bool> _expandedStates = <String, bool>{}.obs;
 
   @override
   void onInit() {
     super.onInit();
     tabController = TabController(length: 2, vsync: this);
-    loadInitialData();
+    loadFeedbackData();
   }
 
   @override
   void onClose() {
+    _pendingFeedbackSubscription?.cancel();
+    _submittedFeedbackSubscription?.cancel();
     tabController.dispose();
+    _expandedStates.clear();
     super.onClose();
   }
 
-  void loadInitialData() {
-    loadToFeedbackServices();
-    loadMyFeedbackServices();
-  }
-
-  Future<void> loadToFeedbackServices() async {
+  /// Load all feedback data and filter into respective lists
+  Future<void> loadFeedbackData() async {
     try {
       isLoadingToFeedback.value = true;
+      isLoadingMyFeedback.value = true;
       hasError.value = false;
 
-      // Simulate API call delay
-      await Future.delayed(Duration(milliseconds: 800));
+      final userId = '3ohlF9J881SuN5qzzL43L8JQ9ex1';
 
-      // Mock data - services without feedback
-      final mockServices = [
-        ServiceModel(
-          id: '1',
-          serviceType: 'Engine Service',
-          carName: 'Toyota',
-          carModel: 'Camry',
-          carPlateNo: 'ABC 1234',
-          serviceDesc: 'Complete engine service including oil change, filter replacement, and general inspection',
-          serviceDate: DateTime.now().subtract(Duration(days: 8)),
-          completedDate: DateTime.now().subtract(Duration(days: 2)),
-          totalCost: 280.50,
-          hasFeedback: false,
-          status: ServiceStatus.completed,
-        ),
-        ServiceModel(
-          id: '2',
-          serviceType: 'Brake Repair',
-          carName: 'Honda',
-          carModel: 'Civic',
-          carPlateNo: 'XYZ 5678',
-          serviceDesc: 'Front brake pad replacement and brake fluid change',
-          serviceDate: DateTime.now().subtract(Duration(days: 6)),
-          completedDate: DateTime.now().subtract(Duration(days: 1)),
-          totalCost: 450.00,
-          hasFeedback: false,
-          status: ServiceStatus.cancelled,
-        ),
-        ServiceModel(
-          id: '3',
-          serviceType: 'Battery Replacement',
-          carName: 'Proton',
-          carModel: 'Saga',
-          carPlateNo: 'DEF 9012',
-          serviceDesc: 'Car battery replacement with 2-year warranty',
-          serviceDate: DateTime.now().subtract(Duration(days: 10)),
-          completedDate: DateTime.now().subtract(Duration(days: 8)), // Expired
-          totalCost: 180.00,
-          hasFeedback: false,
-          status: ServiceStatus.pending,
-        ),
-      ];
+      // Cancel existing subscriptions
+      _pendingFeedbackSubscription?.cancel();
+      _submittedFeedbackSubscription?.cancel();
 
-      toFeedbackServices.value = mockServices;
+      // Load pending feedbacks with real-time updates
+      _pendingFeedbackSubscription = _feedbackRepository
+          .getPendingFeedbacks(userId)
+          .listen(
+            (feedbacks) {
+              toFeedbackList.value = feedbacks;
+              isLoadingToFeedback.value = false;
+            },
+            onError: (error) {
+              hasError.value = true;
+              errorMessage.value = 'Failed to load pending feedback data.';
+              isLoadingToFeedback.value = false;
+            },
+          );
+
+      // Load submitted/disabled feedbacks with real-time updates
+      _submittedFeedbackSubscription = _feedbackRepository
+          .getMySubmittedFeedbacks(userId)
+          .listen(
+            (feedbacks) {
+              myFeedbackList.value = feedbacks;
+              isLoadingMyFeedback.value = false;
+            },
+            onError: (error) {
+              hasError.value = true;
+              errorMessage.value = 'Failed to load submitted feedback data.';
+              isLoadingMyFeedback.value = false;
+            },
+          );
     } catch (e) {
       hasError.value = true;
-      errorMessage.value = 'Failed to load services. Please try again.';
-    } finally {
+      errorMessage.value = e.toString();
       isLoadingToFeedback.value = false;
-    }
-  }
-
-  Future<void> loadMyFeedbackServices() async {
-    try {
-      isLoadingMyFeedback.value = true;
-
-      // Simulate API call delay
-      await Future.delayed(Duration(milliseconds: 600));
-
-      // Mock data - services with feedback
-      final mockFeedbacks = [
-        ServiceFeedbackModel(
-          id: 'fb1',
-          appointmentId: '1',
-          serviceRating: 5,
-          repairEfficiencyRating: 4,
-          transparencyRating: 5,
-          overallExperienceRating: 4,
-          comment: 'Excellent service! The AC is working perfectly now. Staff was very professional and explained everything clearly.',
-          staffReply: 'Thank you for your wonderful feedback! We\'re delighted that you\'re satisfied with our AC service. We look forward to serving you again.',
-          createdAt: DateTime.now().subtract(Duration(days: 10)),
-          userId: 'user1',
-          mediaPaths: [],
-          likes: [],
-        ),
-        ServiceFeedbackModel(
-          id: 'fb2',
-          appointmentId: '2',
-          serviceRating: 4,
-          repairEfficiencyRating: 3,
-          transparencyRating: 4,
-          overallExperienceRating: 4,
-          comment: 'Good service overall. The tires are great quality, but the waiting time was a bit long.',
-          staffReply: '',
-          createdAt: DateTime.now().subtract(Duration(days: 20)),
-          userId: 'user2',
-          mediaPaths: [],
-          likes: [],
-        ),
-        ServiceFeedbackModel(
-          id: 'fb3',
-          appointmentId: '3',
-          serviceRating: 5,
-          repairEfficiencyRating: 5,
-          transparencyRating: 4,
-          overallExperienceRating: 5,
-          comment: 'Outstanding work! My car feels like new again. Highly recommend this service center.',
-          staffReply: 'We truly appreciate your kind words! Your satisfaction is our top priority. Thank you for choosing our service center.',
-          userId: 'user3',
-          mediaPaths: [],
-          likes: [],
-          createdAt: DateTime.now().subtract(Duration(days: 25)),
-        ),
-      ];
-
-      myFeedbackServices.value = mockFeedbacks;
-    } catch (e) {
-      // Handle error if needed
-    } finally {
       isLoadingMyFeedback.value = false;
     }
   }
 
-  Future<void> refreshCurrentTab() async {
-    if (tabController.index == 0) {
-      await loadToFeedbackServices();
-    } else {
-      await loadMyFeedbackServices();
-    }
+  // 检查反馈是否展开
+  bool isFeedbackExpanded(String feedbackId) {
+    return _expandedStates[feedbackId] ?? false;
   }
 
+  // 切换反馈卡片的展开状态
+  void toggleFeedbackExpansion(String feedbackId) {
+    final currentState = _expandedStates[feedbackId] ?? false;
+    _expandedStates[feedbackId] = !currentState;
+  }
+
+  /// Get remaining time to provide feedback (7 days from creation)
+  Duration getRemainingTimeToFeedback(DateTime? createdAt) {
+    if (createdAt == null) return Duration.zero;
+
+    final sevenDaysAfter = createdAt.add(const Duration(days: 7));
+    final now = DateTime.now();
+
+    if (now.isAfter(sevenDaysAfter)) {
+      return Duration.zero;
+    }
+
+    return sevenDaysAfter.difference(now);
+  }
+
+  /// Check if feedback period has expired
+  bool isFeedbackExpired(DateTime? createdAt) {
+    return getRemainingTimeToFeedback(createdAt).inSeconds <= 0;
+  }
+
+  /// Check if user can provide feedback (within 7 days and has edit attempts remaining)
+  bool canProvideFeedback(DateTime? createdAt, int editRemaining) {
+    if (editRemaining == 0) return false; // 没有剩余编辑次数
+    if (isFeedbackExpired(createdAt)) return false; // 超过7天反馈期
+
+    return true;
+  }
+
+  /// Check if feedback can be edited (within 24 hours from last update and has edit attempts remaining)
+  bool canBeEdited(DateTime? updatedAt, int editRemaining) {
+    if (editRemaining == 0 || updatedAt == null) return false;
+
+    final now = DateTime.now();
+    final difference = now.difference(updatedAt);
+
+    return difference.inHours < 24;
+  }
+
+  /// Get remaining time to edit (24 hours from last update)
+  Duration getRemainingTimeToEdit(DateTime? updatedAt, int editRemaining) {
+    if (updatedAt == null || editRemaining == 0) return Duration.zero;
+
+    final twentyFourHoursAfter = updatedAt.add(const Duration(hours: 24));
+    final now = DateTime.now();
+
+    if (now.isAfter(twentyFourHoursAfter)) {
+      return Duration.zero;
+    }
+
+    return twentyFourHoursAfter.difference(now);
+  }
+
+  /// Format remaining time display
   String formatRemainingTime(Duration duration) {
     if (duration.inSeconds <= 0) return 'Expired';
 
     if (duration.inDays > 0) {
-      return '${duration.inDays}d left';
+      return '${duration.inDays} day${duration.inDays > 1 ? 's' : ''} left';
     } else if (duration.inHours > 0) {
-      return '${duration.inHours}h left';
+      return '${duration.inHours} hour${duration.inHours > 1 ? 's' : ''} left';
     } else {
-      return '${duration.inMinutes}m left';
+      return '${duration.inMinutes} minute${duration.inMinutes > 1 ? 's' : ''} left';
     }
   }
 
-  bool canServiceBeReviewed(ServiceModel service) {
-    return service.canRate;
+  /// Refresh current tab data
+  Future<void> refreshCurrentTab() async {
+    await loadFeedbackData();
   }
 
-  void navigateToServiceDetails(ServiceModel service) {
-    // Navigate to service details page
-    print('Navigate to service details: ${service.id}');
-  }
-
-  void navigateToMakeFeedback(ServiceModel service) {
+  /// Navigate to make feedback page
+  void navigateToMakeFeedback(ServiceFeedbackModel feedback) {
     // Navigate to make feedback page
-    print('Navigate to make feedback: ${service.id}');
-    // Get.to(() => MakeFeedbackPage(service: service));
+    Get.to(() => MakeServiceFeedbackScreen(feedback: feedback));
+    // Get.toNamed('/make-feedback', arguments: feedback);
+  }
+
+  /// Navigate to edit feedback page
+  void navigateToEditFeedback(ServiceFeedbackModel feedback) {
+    if (canEditFeedback(feedback)) {
+      Get.toNamed('/edit-feedback', arguments: feedback);
+    }
+  }
+
+  bool canEditFeedback(ServiceFeedbackModel feedback) {
+    return canBeEdited(feedback.updatedAt, feedback.editRemaining);
+  }
+
+  /// Navigate to feedback details
+  void navigateToFeedbackDetails(ServiceFeedbackModel feedback) {
+    Get.toNamed('/feedback-details', arguments: feedback);
+  }
+
+  /// Get feedback count for tab badges
+  int get toFeedbackCount => toFeedbackList.length;
+  int get myFeedbackCount => myFeedbackList.length;
+
+  /// Retry loading data
+  void retryLoading() {
+    hasError.value = false;
+    errorMessage.value = '';
+    loadFeedbackData();
+  }
+
+  /// Get status color based on feedback status
+  Color getStatusColor(FeedbackStatus status) {
+    switch (status) {
+      case FeedbackStatus.pending:
+        return TColors.warning;
+      case FeedbackStatus.submitted:
+        return TColors.success;
+      case FeedbackStatus.disabled:
+        return TColors.error;
+    }
+  }
+
+  /// Get rating color based on average rating
+  Color getRatingColor(double averageRating) {
+    if (averageRating >= 4.0) return TColors.success;
+    if (averageRating >= 3.0) return TColors.warning;
+    return TColors.error;
   }
 }
