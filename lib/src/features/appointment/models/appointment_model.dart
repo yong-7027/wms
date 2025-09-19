@@ -13,6 +13,7 @@ class AppointmentModel {
   final DateTime? createdAt;
   final VehicleInfoModel vehicleInfo;
   final String? notes;
+  final String? imagePath;
 
   AppointmentModel({
     required this.appointmentId,
@@ -24,6 +25,7 @@ class AppointmentModel {
     required this.vehicleInfo,
     this.createdAt,
     this.notes,
+    this.imagePath,
   });
 
   static AppointmentModel empty() {
@@ -39,6 +41,7 @@ class AppointmentModel {
         make: '',
         model: '',
       ),
+      imagePath: '',
     );
   }
 
@@ -48,6 +51,7 @@ class AppointmentModel {
       FirebaseFieldNames.userId: userId,
       FirebaseFieldNames.serviceTypes: serviceTypeIds, // 存储ID列表
       FirebaseFieldNames.totalPrice: totalPrice,
+      FirebaseFieldNames.imagePath: imagePath,
       FirebaseFieldNames.status: status,
       FirebaseFieldNames.scheduledAt: Timestamp.fromDate(scheduledAt),
       FirebaseFieldNames.vehicleInfo: vehicleInfo.toJson(),
@@ -57,10 +61,10 @@ class AppointmentModel {
     };
   }
 
-  factory AppointmentModel.fromSnapshot(
-      DocumentSnapshot<Map<String, dynamic>> doc) {
-    final map = doc.data();
-    if (map == null) return AppointmentModel.empty();
+  factory AppointmentModel.fromSnapshot(DocumentSnapshot doc) {
+    final rawData = doc.data();
+    print('📄 Raw Firestore doc (${doc.id}): $rawData');
+    final map = doc.data() as Map<String, dynamic>;
 
     // 处理车辆信息
     final vehicleMap = map[FirebaseFieldNames.vehicleInfo] as Map<
@@ -82,6 +86,7 @@ class AppointmentModel {
       userId: map[FirebaseFieldNames.userId] ?? '',
       serviceTypeIds: serviceTypeIds,
       totalPrice: (map[FirebaseFieldNames.totalPrice] ?? 0).toDouble(),
+      imagePath: map[FirebaseFieldNames.imagePath] ?? '',
       status: map[FirebaseFieldNames.status] ?? 'pending',
       scheduledAt: (map[FirebaseFieldNames.scheduledAt] as Timestamp).toDate(),
       vehicleInfo: vehicleInfo,
