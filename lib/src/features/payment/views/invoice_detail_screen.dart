@@ -360,10 +360,9 @@ class InvoiceDetailScreen extends StatelessWidget {
                   children: [
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: invoice.pdfUrl != null ? () {
-                          // Download receipt logic
+                        onPressed: () {
                           controller.downloadReceipt(invoice.invoiceId);
-                        } : null,
+                        },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: TColors.primary,
                           side: const BorderSide(color: TColors.primary),

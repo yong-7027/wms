@@ -1,9 +1,63 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 网络权限 -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+
+    <!-- 通知权限 (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- For Android 13+ (API 33+) 媒体权限 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+    <!-- For Android 12 and below 媒体权限 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
+    <!-- 媒体位置权限 (可选，如果需要读取照片地理位置信息) -->
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
+
+    <!-- 相机与麦克风权限 -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- 声明摄像头是可选功能，应用可以在没有摄像头的设备上安装和运行 -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- 同样，将麦克风也声明为可选 -->
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
     <application
         android:label="wms"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false">
+
+        <!-- Firebase FCM 配置 -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="payment_reminders" />
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/ic_launcher" />
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_color" />
+
+        <!-- Firebase Messaging Service -->
+        <service
+            android:name="MyFirebaseMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -22,6 +76,10 @@
               android:resource="@style/NormalTheme"
               />
 
+            <meta-data
+                android:name="com.google.android.gms.wallet.api.enabled"
+                android:value="true" />
+
             <!-- Standard App Launch Intent -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -35,6 +93,15 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="wms"
                     android:host="payment" />
+            </intent-filter>
+
+            <!-- Deep Link Intent Filters for Invoice -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="wms"
+                    android:host="invoice" />
             </intent-filter>
 
             <intent-filter>

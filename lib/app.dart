@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:wms/src/features/notification/views/test_notification.dart';
 
 import 'src/bindings/general_bindings.dart';
 import 'src/features/authentication/views/onboarding/onboarding.dart';
@@ -22,7 +23,9 @@ class App extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       defaultTransition: Transition.rightToLeftWithFade,
       transitionDuration: const Duration(milliseconds: 500),
-      home: InvoiceDetailScreen(invoiceId: 'mqNUHuRdE3aCjKZYOouf'),
+      // home: InvoiceDetailScreen(invoiceId: 'mqNUHuRdE3aCjKZYOouf'),
+      home: PaymentHistoryScreen(),
+      // home: TestNotificationPage(),
     );
   }
 }

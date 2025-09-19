@@ -1,18 +1,13 @@
-import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import '../../../common/loaders/loaders.dart';
 import '../../../data/repository/payment/payment_repository.dart';
@@ -20,7 +15,6 @@ import '../../../utils/helpers/export_helper.dart';
 import '../models/invoice_model.dart';
 import '../models/payment_transaction_model.dart';
 import '../views/invoice_payment_success_screen.dart';
-import '../views/payment_method_selection_screen.dart';
 import 'invoice_controller.dart';
 
 class PaymentController extends GetxController {
@@ -40,8 +34,8 @@ class PaymentController extends GetxController {
   final RxString currentInvoiceId = ''.obs;
 
   // Deep Link 监听
-  final AppLinks _appLinks = AppLinks();
-  StreamSubscription<Uri?>? _linkSubscription;
+  // final AppLinks _appLinks = AppLinks();
+  // StreamSubscription<Uri?>? _linkSubscription;
 
   static const String baseUrl = 'https://api-lk2drcb6aa-uc.a.run.app';
   static const String createPaymentIntentUrl = '$baseUrl/createPaymentIntent';
@@ -53,63 +47,63 @@ class PaymentController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _initializeDeepLinkListener();
-    _getInitialAppLink();
+    // _initializeDeepLinkListener();
+    // _getInitialAppLink();
   }
 
-  @override
-  void onClose() {
-    _linkSubscription?.cancel();
-    super.onClose();
-  }
+  // @override
+  // void onClose() {
+  //   _linkSubscription?.cancel();
+  //   super.onClose();
+  // }
 
   /// 获取初始深度链接（冷启动/热启动）
-  Future<void> _getInitialAppLink() async {
-    try {
-      final Uri? initialUri = await _appLinks.getInitialLink();
-      if (initialUri != null) {
-        _handleDeepLink(initialUri);
-      }
-    } catch (e) {
-      print('Failed to get initial app link: $e');
-    }
-  }
+  // Future<void> _getInitialAppLink() async {
+  //   try {
+  //     final Uri? initialUri = await _appLinks.getInitialLink();
+  //     if (initialUri != null) {
+  //       _handleDeepLink(initialUri);
+  //     }
+  //   } catch (e) {
+  //     print('Failed to get initial app link: $e');
+  //   }
+  // }
 
   /// 初始化Deep Link监听器（使用 app_links）
-  void _initializeDeepLinkListener() {
-    _linkSubscription = _appLinks.uriLinkStream.listen(
-          (Uri? uri) {
-        if (uri != null) {
-          _handleDeepLink(uri);
-        }
-      },
-      onError: (err) {
-        print('Deep link error: $err');
-      },
-    );
-  }
+  // void _initializeDeepLinkListener() {
+  //   _linkSubscription = _appLinks.uriLinkStream.listen(
+  //         (Uri? uri) {
+  //       if (uri != null) {
+  //         _handleDeepLink(uri);
+  //       }
+  //     },
+  //     onError: (err) {
+  //       print('Deep link error: $err');
+  //     },
+  //   );
+  // }
 
   /// 处理深度链接
-  void _handleDeepLink(Uri uri) {
-    print('Received deep link: ${uri.toString()}');
-    print('Scheme: ${uri.scheme}, Host: ${uri.host}, Path: ${uri.path}');
-
-    if (uri.scheme == 'wms' && uri.host == 'payment') {
-      if (uri.pathSegments.isNotEmpty) {
-        switch (uri.pathSegments.first) {
-          case 'paypal-success':
-            _handlePayPalDeepLinkSuccess(uri);
-            break;
-          case 'paypal-cancel':
-            _handlePayPalDeepLinkCancel(uri);
-            break;
-        }
-      }
-    }
-  }
+  // void _handleDeepLink(Uri uri) {
+  //   print('Received deep link: ${uri.toString()}');
+  //   print('Scheme: ${uri.scheme}, Host: ${uri.host}, Path: ${uri.path}');
+  //
+  //   if (uri.scheme == 'wms' && uri.host == 'payment') {
+  //     if (uri.pathSegments.isNotEmpty) {
+  //       switch (uri.pathSegments.first) {
+  //         case 'paypal-success':
+  //           _handlePayPalDeepLinkSuccess(uri);
+  //           break;
+  //         case 'paypal-cancel':
+  //           _handlePayPalDeepLinkCancel(uri);
+  //           break;
+  //       }
+  //     }
+  //   }
+  // }
 
   /// 处理PayPal成功回调
-  void _handlePayPalDeepLinkSuccess(Uri uri) async {
+  void handlePayPalDeepLinkSuccess(Uri uri) async {
     try {
       final userId = uri.queryParameters['userId'];
       final invoiceId = uri.queryParameters['invoiceId'];
@@ -222,7 +216,7 @@ class PaymentController extends GetxController {
   }
 
   /// 处理PayPal取消回调
-  void _handlePayPalDeepLinkCancel(Uri uri) {
+  void handlePayPalDeepLinkCancel(Uri uri) {
     paymentStatus.value = 'PayPal payment cancelled';
     isProcessingPayment.value = false;
 
@@ -306,6 +300,11 @@ class PaymentController extends GetxController {
               postalCode: '',
               state: '',
             ),
+          ),
+          googlePay: const PaymentSheetGooglePay(
+            merchantCountryCode: 'MY', // 商户所在国家代码，例如马来西亚是'MY'
+            currencyCode: 'MYR',       // 交易的货币代码
+            testEnv: true, // 测试环境
           ),
         ),
       );
@@ -654,41 +653,7 @@ class PaymentController extends GetxController {
     return paymentStatus.value;
   }
 
-  /// 生成 PDF 收据
-  Future<pw.Document> _generateInvoiceReceipt(PaymentTransactionModel transaction, InvoiceModel invoice) async {
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Padding(
-            padding: const pw.EdgeInsets.all(20),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text("Payment Receipt",
-                    style: pw.TextStyle(
-                        fontSize: 24, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 20),
-                pw.Text("Transaction ID: ${transaction.transactionId}"),
-                pw.Text("Invoice: #${invoice.invoiceId.substring(0, 8).toUpperCase()}"),
-                pw.Text("Amount: RM${transaction.amount.toStringAsFixed(2)}"),
-                pw.Text("Payment Method: ${transaction.paymentMethod}"),
-                pw.Text("Date: ${transaction.transactionDateTime}"),
-                pw.SizedBox(height: 20),
-                pw.Text("Invoice Items:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                ...invoice.items.map((item) => pw.Text("- ${item.description}: RM${item.itemTotal.toStringAsFixed(2)}")),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-
-    return pdf;
-  }
-
-  Future<void> exportInvoiceReceipt(PaymentTransactionModel transaction, InvoiceModel invoice) async {
+  Future<void> downloadReceipt(PaymentTransactionModel transaction, InvoiceModel invoice) async {
     try {
       final receiptData = ReceiptData(
         invoice: invoice,

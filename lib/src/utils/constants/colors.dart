@@ -64,4 +64,35 @@ class TColors {
   static const Color razorpayColor = Color(0xff528ff0);
 
   static const Color tCardBgColor = Color(0xfff7f6f1);
+
+  /* -- Refund Status Colors -- */
+  static const Color refundApproved = Color(0xff4caf50);
+  static const Color refundRejected = Color(0xfff44336);
+  static const Color refundProcessing = Color(0xffff9800);
+  static const Color refundCancelled = Color(0xff9e9e9e);
+
+  /* -- Payment Status Colors -- */
+  static const Color paymentSucceeded = Color(0xff4caf50);
+  static const Color paymentPending = Color(0xffff9800);
+  static const Color paymentFailed = Color(0xfff44336);
+  static const Color paymentRefunded = Color(0xff673ab7);
+
+  /* -- Additional UI Colors -- */
+  static const Color orange = Color(0xffff9800);
+  static const Color green = Color(0xff4caf50);
+  static const Color red = Color(0xfff44336);
+  static const Color purple = Color(0xff673ab7);
+  static const Color blue = Color(0xff2196f3);
+  static const Color indigo = Color(0xff3f51b5);
+
+  // Gradient colors
+  static const Gradient linerGradient = LinearGradient(
+    begin: Alignment(0.0, 0.0),
+    end: Alignment(0.707, -0.707),
+    colors: [
+      Color(0xffff9a9e),
+      Color(0xfffecfef),
+      Color(0xfffecfef),
+    ],
+  );
 }

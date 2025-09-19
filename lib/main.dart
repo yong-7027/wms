@@ -10,6 +10,9 @@ import 'package:printing/printing.dart';
 
 import 'app.dart';
 import 'firebase_options.dart';
+import 'src/features/notification/controllers/fcm_service.dart';
+import 'src/features/payment/controllers/payment_controller.dart';
+import 'src/services/deep_link_service.dart';
 
 void main() async {
   /// Widgets Binding
@@ -66,6 +69,12 @@ void main() async {
   // await FirebaseAppCheck.instance.activate(
   //   androidProvider: AndroidProvider.debug,
   // );
+
+  /// -- Initialize FCM
+  final fcmService = FCMService();
+  await fcmService.initialize();
+
+  Get.put(PaymentController());
 
   runApp(const App());
 }

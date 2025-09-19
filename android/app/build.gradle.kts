@@ -13,6 +13,7 @@ android {
 //    ndkVersion = "27.0.12077973"
 
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -44,6 +45,12 @@ android {
 dependencies {
     // Import the Firebase BoM
     implementation(platform("com.google.firebase:firebase-bom:34.1.0"))
+
+    implementation("com.google.android.material:material:1.11.0")
+
+    implementation("androidx.appcompat:appcompat:1.6.1")
+
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 flutter {

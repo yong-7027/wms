@@ -8,6 +8,21 @@ class TFormatter {
     return DateFormat('dd-MMM-yyyy').format(date);
   }
 
+  static String formatFullDate(DateTime date) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    final month = months[date.month - 1];
+    final day = date.day.toString().padLeft(2, '0');
+    final year = date.year;
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+
+    return '$month $day, $year at $hour:$minute';
+  }
+
   static String formatCurrency(double amount) {
     return NumberFormat.currency(locale: 'ms_MY', symbol: 'RM').format(amount);
   }

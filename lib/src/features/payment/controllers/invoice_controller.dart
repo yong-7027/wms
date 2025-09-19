@@ -1,15 +1,15 @@
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../common/loaders/loaders.dart';
+import '../../../data/repository/payment/invoice_repository.dart';
+import '../../../data/repository/payment/payment_repository.dart';
+import '../../../utils/helpers/export_helper.dart';
 import '../models/invoice_model.dart';
-import '../../../utils/constants/firebase_field_names.dart';
 
 class InvoiceController extends GetxController {
   static InvoiceController get instance => Get.find();
 
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final invoiceRepo = Get.put(InvoiceRepository());
+  final paymentRepo = Get.put(PaymentRepository());
 
   // Observable variables
   final RxBool isLoading = false.obs;
@@ -21,24 +21,17 @@ class InvoiceController extends GetxController {
     try {
       isLoading.value = true;
 
-      final doc = await _db
-          .collection('invoices')
-          .doc(invoiceId)
-          .get();
-
-      if (doc.exists) {
-        currentInvoice.value = InvoiceModel.fromSnapshot(doc);
+      final invoice = await invoiceRepo.getInvoiceById(invoiceId);
+      if (invoice != null) {
+        currentInvoice.value = invoice;
       } else {
         throw Exception('Invoice not found');
       }
     } catch (e) {
       print('Error loading invoice details: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to load invoice details: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red[100],
-        colorText: Colors.red[800],
+      TLoaders.errorSnackBar(
+        title: 'Error',
+        message: 'Failed to load invoice details',
       );
     } finally {
       isLoading.value = false;
@@ -50,23 +43,12 @@ class InvoiceController extends GetxController {
     try {
       isLoading.value = true;
 
-      final querySnapshot = await _db
-          .collection('invoices')
-          .where(FirebaseFieldNames.userId, isEqualTo: userId)
-          .orderBy(FirebaseFieldNames.createdAt, descending: true)
-          .get();
-
-      invoices.value = querySnapshot.docs
-          .map((doc) => InvoiceModel.fromSnapshot(doc))
-          .toList();
+      invoices.value = await invoiceRepo.getUserInvoices(userId);
     } catch (e) {
       print('Error loading user invoices: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to load invoices: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red[100],
-        colorText: Colors.red[800],
+      TLoaders.errorSnackBar(
+        title: 'Error',
+        message: 'Failed to load invoices',
       );
     } finally {
       isLoading.value = false;
@@ -78,27 +60,17 @@ class InvoiceController extends GetxController {
     try {
       isLoading.value = true;
 
-      final querySnapshot = await _db
-          .collection('invoices')
-          .where(FirebaseFieldNames.appointmentId, isEqualTo: appointmentId)
-          .orderBy(FirebaseFieldNames.createdAt, descending: true)
-          .get();
+      final appointmentInvoices = await invoiceRepo.getInvoicesByAppointmentId(appointmentId);
+      invoices.value = appointmentInvoices;
 
-      invoices.value = querySnapshot.docs
-          .map((doc) => InvoiceModel.fromSnapshot(doc))
-          .toList();
-
-      if (invoices.isNotEmpty) {
-        currentInvoice.value = invoices.first;
+      if (appointmentInvoices.isNotEmpty) {
+        currentInvoice.value = appointmentInvoices.first;
       }
     } catch (e) {
       print('Error loading appointment invoices: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to load invoice: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red[100],
-        colorText: Colors.red[800],
+      TLoaders.errorSnackBar(
+        title: 'Error',
+        message: 'Failed to load invoice',
       );
     } finally {
       isLoading.value = false;
@@ -108,12 +80,7 @@ class InvoiceController extends GetxController {
   /// Update invoice status
   Future<void> updateInvoiceStatus(String invoiceId, String status) async {
     try {
-      await _db
-          .collection('invoices')
-          .doc(invoiceId)
-          .update({
-        FirebaseFieldNames.status: status,
-      });
+      await invoiceRepo.updateInvoiceStatus(invoiceId, status);
 
       // Update local invoice if it's the current one
       if (currentInvoice.value.invoiceId == invoiceId) {
@@ -126,21 +93,15 @@ class InvoiceController extends GetxController {
         invoices[index] = invoices[index].copyWith(status: status);
       }
 
-      Get.snackbar(
-        'Success',
-        'Invoice status updated successfully',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green[100],
-        colorText: Colors.green[800],
+      TLoaders.successSnackBar(
+        title: 'Success',
+        message: 'Invoice status updated successfully',
       );
     } catch (e) {
       print('Error updating invoice status: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to update invoice status: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red[100],
-        colorText: Colors.red[800],
+      TLoaders.errorSnackBar(
+        title: 'Error',
+        message: 'Failed to update invoice status',
       );
     }
   }
@@ -148,18 +109,7 @@ class InvoiceController extends GetxController {
   /// Mark invoice as paid and add PDF URL
   Future<void> markInvoiceAsPaid(String invoiceId, {String? pdfUrl}) async {
     try {
-      final updateData = {
-        FirebaseFieldNames.status: 'paid',
-      };
-
-      if (pdfUrl != null) {
-        updateData[FirebaseFieldNames.pdfUrl] = pdfUrl;
-      }
-
-      await _db
-          .collection('invoices')
-          .doc(invoiceId)
-          .update(updateData);
+      await invoiceRepo.markInvoiceAsPaid(invoiceId, pdfUrl: pdfUrl);
 
       // Update local invoice
       if (currentInvoice.value.invoiceId == invoiceId) {
@@ -185,45 +135,64 @@ class InvoiceController extends GetxController {
     }
   }
 
-  /// Download receipt
+  /// Download receipt - generate locally with payment transaction
   Future<void> downloadReceipt(String invoiceId) async {
     try {
+      TLoaders.customToast(message: 'Preparing receipt...');
+
+      // Get invoice details
       final invoice = currentInvoice.value.invoiceId == invoiceId
           ? currentInvoice.value
-          : invoices.firstWhere((inv) => inv.invoiceId == invoiceId);
+          : invoices.firstWhere((inv) => inv.invoiceId == invoiceId,
+          orElse: () => InvoiceModel.empty());
 
-      if (invoice.pdfUrl == null || invoice.pdfUrl!.isEmpty) {
-        Get.snackbar(
-          'Error',
-          'Receipt not available for download',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.orange[100],
-          colorText: Colors.orange[800],
+      if (invoice.invoiceId.isEmpty) {
+        // Try to fetch from database
+        final fetchedInvoice = await invoiceRepo.getInvoiceById(invoiceId);
+        if (fetchedInvoice == null) {
+          throw Exception('Invoice not found');
+        }
+        currentInvoice.value = fetchedInvoice;
+      }
+
+      // Check if invoice is paid
+      if (currentInvoice.value.status != 'paid') {
+        TLoaders.warningSnackBar(
+          title: 'Receipt Not Available',
+          message: 'Receipt is only available for paid invoices',
         );
         return;
       }
 
-      final Uri uri = Uri.parse(invoice.pdfUrl!);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        Get.snackbar(
-          'Success',
-          'Receipt download started',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green[100],
-          colorText: Colors.green[800],
+      // Get payment transaction for this invoice
+      final payments = await paymentRepo.fetchInvoicePayments(invoiceId);
+      if (payments.isEmpty) {
+        TLoaders.warningSnackBar(
+          title: 'Payment Not Found',
+          message: 'No payment record found for this invoice',
         );
-      } else {
-        throw Exception('Could not launch download URL');
+        return;
       }
+
+      // Use the latest successful payment
+      final successfulPayment = payments.firstWhere(
+            (payment) => payment.status == 'succeeded',
+        orElse: () => payments.first,
+      );
+
+      // Generate and export receipt
+      final receiptData = ReceiptData(
+        invoice: currentInvoice.value,
+        transaction: successfulPayment,
+      );
+
+      await ExportHelper.exportReceipt(receiptData: receiptData);
+
     } catch (e) {
       print('Error downloading receipt: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to download receipt: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red[100],
-        colorText: Colors.red[800],
+      TLoaders.errorSnackBar(
+        title: 'Download Failed',
+        message: 'Failed to generate receipt: ${e.toString()}',
       );
     }
   }
@@ -231,15 +200,7 @@ class InvoiceController extends GetxController {
   /// Get invoice by ID
   Future<InvoiceModel?> getInvoiceById(String invoiceId) async {
     try {
-      final doc = await _db
-          .collection('invoices')
-          .doc(invoiceId)
-          .get();
-
-      if (doc.exists) {
-        return InvoiceModel.fromSnapshot(doc);
-      }
-      return null;
+      return await invoiceRepo.getInvoiceById(invoiceId);
     } catch (e) {
       print('Error getting invoice by ID: $e');
       return null;
@@ -249,11 +210,7 @@ class InvoiceController extends GetxController {
   /// Check if invoice exists
   Future<bool> invoiceExists(String invoiceId) async {
     try {
-      final doc = await _db
-          .collection('invoices')
-          .doc(invoiceId)
-          .get();
-      return doc.exists;
+      return await invoiceRepo.invoiceExists(invoiceId);
     } catch (e) {
       print('Error checking if invoice exists: $e');
       return false;
@@ -263,13 +220,7 @@ class InvoiceController extends GetxController {
   /// Get overdue invoices count for user
   Future<int> getOverdueInvoicesCount(String userId) async {
     try {
-      final querySnapshot = await _db
-          .collection('invoices')
-          .where(FirebaseFieldNames.userId, isEqualTo: userId)
-          .where(FirebaseFieldNames.status, isEqualTo: 'overdue')
-          .get();
-
-      return querySnapshot.docs.length;
+      return await invoiceRepo.getOverdueInvoicesCount(userId);
     } catch (e) {
       print('Error getting overdue invoices count: $e');
       return 0;
@@ -279,22 +230,87 @@ class InvoiceController extends GetxController {
   /// Get unpaid invoices total for user
   Future<double> getUnpaidInvoicesTotal(String userId) async {
     try {
-      final querySnapshot = await _db
-          .collection('invoices')
-          .where(FirebaseFieldNames.userId, isEqualTo: userId)
-          .where(FirebaseFieldNames.status, whereIn: ['unpaid', 'overdue'])
-          .get();
-
-      double total = 0.0;
-      for (final doc in querySnapshot.docs) {
-        final invoice = InvoiceModel.fromSnapshot(doc);
-        total += invoice.totalAmount;
-      }
-
-      return total;
+      return await invoiceRepo.getUnpaidInvoicesTotal(userId);
     } catch (e) {
       print('Error getting unpaid invoices total: $e');
       return 0.0;
+    }
+  }
+
+  /// Create new invoice
+  Future<String?> createInvoice(InvoiceModel invoice) async {
+    try {
+      final invoiceId = await invoiceRepo.createInvoice(invoice);
+
+      // Refresh local data
+      await loadAppointmentInvoices(invoice.appointmentId);
+
+      TLoaders.successSnackBar(
+        title: 'Success',
+        message: 'Invoice created successfully',
+      );
+
+      return invoiceId;
+    } catch (e) {
+      print('Error creating invoice: $e');
+      TLoaders.errorSnackBar(
+        title: 'Error',
+        message: 'Failed to create invoice',
+      );
+      return null;
+    }
+  }
+
+  /// Update existing invoice
+  Future<void> updateInvoice(String invoiceId, InvoiceModel invoice) async {
+    try {
+      await invoiceRepo.updateInvoice(invoiceId, invoice);
+
+      // Update local data
+      if (currentInvoice.value.invoiceId == invoiceId) {
+        currentInvoice.value = invoice.copyWith(invoiceId: invoiceId);
+      }
+
+      final index = invoices.indexWhere((inv) => inv.invoiceId == invoiceId);
+      if (index != -1) {
+        invoices[index] = invoice.copyWith(invoiceId: invoiceId);
+      }
+
+      TLoaders.successSnackBar(
+        title: 'Success',
+        message: 'Invoice updated successfully',
+      );
+    } catch (e) {
+      print('Error updating invoice: $e');
+      TLoaders.errorSnackBar(
+        title: 'Error',
+        message: 'Failed to update invoice',
+      );
+    }
+  }
+
+  /// Delete invoice
+  Future<void> deleteInvoice(String invoiceId) async {
+    try {
+      await invoiceRepo.deleteInvoice(invoiceId);
+
+      // Remove from local data
+      if (currentInvoice.value.invoiceId == invoiceId) {
+        currentInvoice.value = InvoiceModel.empty();
+      }
+
+      invoices.removeWhere((invoice) => invoice.invoiceId == invoiceId);
+
+      TLoaders.successSnackBar(
+        title: 'Success',
+        message: 'Invoice deleted successfully',
+      );
+    } catch (e) {
+      print('Error deleting invoice: $e');
+      TLoaders.errorSnackBar(
+        title: 'Error',
+        message: 'Failed to delete invoice',
+      );
     }
   }
 

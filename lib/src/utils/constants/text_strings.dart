@@ -17,4 +17,9 @@ class TTexts {
   // -- Error Message
   static const String commonErrorMessage = "Something went wrong. Please try again.";
   static const String networkErrorMessage = "You're offline. Please check your network connection and try again.";
+
+  static const String companyName = "Zenova";
+  static const String companyAddress = 'Bukit Mertajam, Penang, Malaysia';
+  static const String companyPhone = '+60 12-345 6789';
+  static const String companyEmail = 'info@wms.com';
 }

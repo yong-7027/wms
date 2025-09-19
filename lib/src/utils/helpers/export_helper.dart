@@ -2,16 +2,17 @@ import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:pdf/pdf.dart';
+import 'package:permission_handler/permission_handler.dart';  // 动态申请存储权限
+import 'package:pdf/pdf.dart';  // 用于生成 PDF
 import 'package:pdf/widgets.dart' as pw;
-import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';  // 分享生成的 PDF 文件
+import 'package:path_provider/path_provider.dart';  // 获取设备存储路径
 
 import '../../common/loaders/loaders.dart';
 import '../../features/payment/models/invoice_model.dart';
 import '../../features/payment/models/payment_transaction_model.dart';
 import '../constants/colors.dart';
+import '../constants/text_strings.dart';
 
 class ReceiptData {
   final InvoiceModel invoice;
@@ -25,10 +26,10 @@ class ReceiptData {
   ReceiptData({
     required this.invoice,
     required this.transaction,
-    this.companyName = 'Workshop Management System',
-    this.companyAddress = 'Bukit Mertajam, Penang, Malaysia',
-    this.companyPhone = '+60 12-345 6789',
-    this.companyEmail = 'info@wms.com',
+    this.companyName = TTexts.companyName,
+    this.companyAddress = TTexts.companyAddress,
+    this.companyPhone = TTexts.companyPhone,
+    this.companyEmail = TTexts.companyEmail,
     this.logoPath,
   });
 }
@@ -40,6 +41,11 @@ class ExportHelper {
   static final Map<Permission, int> _denialCount = {};
 
   /// Export receipt as PDF
+  /*
+  * 先调用 _requestStoragePermissionWithDialog() 请求存储权限。
+  * 权限通过 → 调用 _exportReceiptAsPDF() 生成 PDF。
+  * 权限拒绝 → 弹出提示或打开设置。
+  * */
   static Future<void> exportReceipt({
     required ReceiptData receiptData,
   }) async {
@@ -61,6 +67,7 @@ class ExportHelper {
   }
 
   /// Request storage permission with user dialog
+  // true 表示权限已授予，false 表示用户拒绝或未获得权限。
   static Future<bool> _requestStoragePermissionWithDialog() async {
     if (Platform.isIOS) {
       // iOS doesn't need explicit permission for app documents
@@ -76,6 +83,7 @@ class ExportHelper {
       Permission targetPermission;
 
       // Android 13+ (API 33+) uses different permissions
+      // 确认要申请的权限
       if (sdkInt >= 33) {
         targetPermission = Permission.photos;
       } else if (sdkInt >= 30) {
@@ -84,17 +92,17 @@ class ExportHelper {
         targetPermission = Permission.storage;
       }
 
-      // Check current permission status
+      // Check current permission status (检查有没有已经允许了)
       PermissionStatus status = await targetPermission.status;
 
       if (status.isGranted) {
-        return true;
+        return true;  // 已授权
       }
 
       // Show explanation dialog first
       bool shouldRequest = await _showPermissionExplanationDialog();
       if (!shouldRequest) {
-        return false;
+        return false;  // 用户在解释对话框中取消
       }
 
       // Request permission
@@ -103,6 +111,7 @@ class ExportHelper {
       if (status.isGranted) {
         return true;
       } else {
+        // 永久拒绝或拒绝过两次就去 open settings
         final shouldOpenSettings = await _checkIfShouldOpenSettings(targetPermission);
         await _showPermissionDeniedDialog(shouldOpenSettings);
         return false;
@@ -125,7 +134,7 @@ class ExportHelper {
     final status = await permission.status;
     if (status.isDenied) {
       _denialCount[permission] = (_denialCount[permission] ?? 0) + 1;
-      return _denialCount[permission]! > 1;
+      return _denialCount[permission]! > 1;  // 拒绝两次了，就去 open settings
     }
     return false;
   }
@@ -195,46 +204,46 @@ class ExportHelper {
             ),
         ],
       ),
-      barrierDismissible: false,
+      barrierDismissible: false,  // 禁止用户通过点击外部遮罩来关闭对话框
     );
   }
 
   /// Export receipt as PDF with beautiful design
   static Future<void> _exportReceiptAsPDF(ReceiptData receiptData) async {
     try {
-      final pdf = pw.Document();
+      final pdf = pw.Document();  // 创建一个新的 PDF 文档
 
       pdf.addPage(
         pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(40),
+          pageFormat: PdfPageFormat.a4,  // 使用 A4 纸张
+          margin: const pw.EdgeInsets.all(40),  // 页面边距
           build: (pw.Context context) {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 // Header with company info
-                _buildHeader(receiptData),
+                _buildHeader(receiptData),  // 页眉：公司信息和“RECEIPT”标签
                 pw.SizedBox(height: 30),
 
                 // Receipt title and number
-                _buildReceiptTitle(receiptData),
+                _buildReceiptTitle(receiptData),  // 收据号、发票号和“PAID”标签
                 pw.SizedBox(height: 30),
 
                 // Invoice and payment info
-                _buildTransactionInfo(receiptData),
+                _buildTransactionInfo(receiptData),  // 支付与发票信息
                 pw.SizedBox(height: 30),
 
                 // Items table
-                _buildItemsTable(receiptData),
+                _buildItemsTable(receiptData),  // 发票明细表格
                 pw.SizedBox(height: 30),
 
                 // Payment summary
-                _buildPaymentSummary(receiptData),
+                _buildPaymentSummary(receiptData),  // 支付汇总
                 pw.SizedBox(height: 30),
 
                 // Footer
                 pw.Spacer(),
-                _buildFooter(),
+                _buildFooter(),  // 页脚：感谢语与生成日期
               ],
             );
           },
@@ -369,7 +378,7 @@ class ExportHelper {
               pw.SizedBox(height: 8),
               _buildInfoRow('Payment Date:', _formatDate(receiptData.transaction.transactionDateTime)),
               _buildInfoRow('Payment Method:', _getPaymentMethodName(receiptData.transaction.paymentMethod)),
-              _buildInfoRow('Transaction ID:', receiptData.transaction.transactionId.substring(0, 20) + '...'),
+              _buildInfoRow('Transaction ID:', _truncateText(receiptData.transaction.transactionId, 20)),
               _buildInfoRow('Status:', receiptData.transaction.status.toUpperCase()),
             ],
           ),
@@ -390,7 +399,7 @@ class ExportHelper {
               pw.SizedBox(height: 8),
               _buildInfoRow('Issue Date:', _formatDate(receiptData.invoice.issuedAt)),
               _buildInfoRow('Due Date:', _formatDate(receiptData.invoice.dueAt)),
-              _buildInfoRow('Invoice ID:', receiptData.invoice.invoiceId.substring(0, 20) + '...'),
+              _buildInfoRow('Invoice ID:', _truncateText(receiptData.invoice.invoiceId, 20)),
               _buildInfoRow('Items Count:', '${receiptData.invoice.items.length} items'),
             ],
           ),
@@ -449,7 +458,7 @@ class ExportHelper {
           children: [
             // Header row
             pw.TableRow(
-              decoration: const pw.BoxDecoration(color: PdfColors.blue50),
+              decoration: const pw.BoxDecoration(color: PdfColors.blue50),  // 蓝色浅背景
               children: [
                 _buildTableCell('Description', isHeader: true),
                 _buildTableCell('Qty', isHeader: true),
@@ -458,7 +467,7 @@ class ExportHelper {
               ],
             ),
             // Data rows
-            ...receiptData.invoice.items.map(
+            ...receiptData.invoice.items.map(  // 列出所以 items
                   (item) => pw.TableRow(
                 children: [
                   _buildTableCell('${item.description}\n(${item.type.toUpperCase()})'),
@@ -481,9 +490,9 @@ class ExportHelper {
       child: pw.Text(
         text,
         style: pw.TextStyle(
-          fontSize: isHeader ? 12 : 10,
-          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-          color: isHeader ? PdfColors.blue800 : PdfColors.grey800,
+          fontSize: isHeader ? 12 : 10,  // 表头大一点
+          fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,   // 表头加粗
+          color: isHeader ? PdfColors.blue800 : PdfColors.grey800,  // 表头蓝色
         ),
       ),
     );
@@ -613,7 +622,7 @@ class ExportHelper {
     }
 
     final fileName = _generateFileName(receiptData);
-    final file = File('${directory.path}/$fileName');
+    final file = File('${directory.path}/$fileName');  // 指定文件路径
 
     await file.writeAsBytes(await pdf.save());
 
@@ -634,8 +643,10 @@ class ExportHelper {
   }
 
   /// Format date
+  // 17/09/2025 15:42
   static String _formatDate(DateTime date) {
     if (date.year == 0) return 'N/A';
+    // 至少两位数，不足就 0 来补
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
@@ -646,10 +657,18 @@ class ExportHelper {
         return 'Credit/Debit Card (Stripe)';
       case 'paypal':
         return 'PayPal';
-      case 'razorpay':
-        return 'RazorPay';
       default:
         return 'Card Payment';
     }
+  }
+
+  // 如果长度小于等于限制 → 直接返回
+  // 如果过长 → 截断并添加 ...
+  static String _truncateText(String text, int maxLength) {
+    if (text.isEmpty) return 'N/A';
+    if (text.length <= maxLength) {
+      return text;
+    }
+    return '${text.substring(0, maxLength)}...';
   }
 }

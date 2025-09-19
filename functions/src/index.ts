@@ -7,6 +7,9 @@ import {verifyPayment} from "./stripe/verifyPayment";
 import {createPayPalOrder, capturePayPalOrder, verifyPayPalPayment} from "./paypal/paypalOrder";
 import * as admin from "firebase-admin";
 
+import {sendPaymentReminder, schedulePaymentReminders} from "./notifications/reminderNotifications";
+import {checkOverdueInvoices} from "./invoices/checkOverdueInvoices";
+
 admin.initializeApp();
 
 const app = express();
@@ -29,6 +32,65 @@ app.post("/verifyPayment", verifyPayment);
 app.post("/createPayPalOrder", createPayPalOrder);
 app.post("/capturePayPalOrder", capturePayPalOrder);
 app.post("/verifyPayPalPayment", verifyPayPalPayment);
+
+// 通知路由
+app.post("/sendPaymentReminder", async (req, res) => {
+  try {
+    const {userId, invoiceId, amount, dueDate} = req.body;
+
+    // 验证必要参数
+    if (!userId || !invoiceId || !amount || !dueDate) {
+      return res.status(400).json({
+        error: "Missing required parameters: userId, invoiceId, amount, dueDate",
+      });
+    }
+
+    await sendPaymentReminder(userId, invoiceId, amount, dueDate);
+
+    return res.json({
+      success: true,
+      message: "Payment reminder sent successfully",
+    });
+  } catch (error) {
+    console.error("Error sending payment reminder:", error);
+    return res.status(500).json({
+      error: "Failed to send payment reminder",
+      details: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// 测试通知路由
+app.post("/testNotification", async (req, res) => {
+  try {
+    const {userId} = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        error: "Missing userId parameter",
+      });
+    }
+
+    // 发送测试通知
+    await sendPaymentReminder(
+      userId,
+      "mqNUHuRdE3aCjKZYOouf",
+      99.99,
+      new Date().toISOString().split("T")[0]
+    );
+
+    return res.json({
+      success: true,
+      message: "Test notification sent successfully",
+    });
+  } catch (error) {
+    console.error("Error sending test notification:", error);
+    return res.status(500).json({
+      error: "Failed to send test notification",
+      details: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
 
 // 根路由
 app.get("/", (req, res) => {
@@ -70,3 +132,5 @@ app.get("/health", (req, res) => {
 });
 
 export const api = functions.https.onRequest(app);
+export {checkOverdueInvoices};
+export {schedulePaymentReminders};

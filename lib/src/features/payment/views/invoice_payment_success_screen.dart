@@ -319,7 +319,7 @@ class InvoicePaymentSuccessScreen extends StatelessWidget {
                     height: 56,
                     child: OutlinedButton(
                       onPressed: () async {
-                        await controller.exportInvoiceReceipt(transaction, invoice);
+                        await controller.downloadReceipt(transaction, invoice);
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: TColors.primary,

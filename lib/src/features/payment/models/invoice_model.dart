@@ -6,7 +6,7 @@ import 'invoice_item_model.dart';
 class InvoiceModel {
   final String invoiceId;
   final String appointmentId;
-  final String status; // 'unpaid', 'paid', 'overdue', 'void'
+  final String status; // 'unpaid', 'paid', 'overdue', 'void', 'refunded'
   final DateTime issuedAt;
   final DateTime dueAt;
   final List<InvoiceItemModel> items;

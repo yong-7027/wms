@@ -24,20 +24,12 @@ class PaymentMethodScreen extends StatelessWidget {
       {
         'id': 'stripe',
         'name': 'Pay via Stripe',
-        'icon': 'assets/icons/stripe.png',
-        'subtitle': 'Credit/Debit cards, Apple Pay, Google Pay',
+        'subtitle': 'Credit/Debit cards, Google Pay',
       },
       {
         'id': 'paypal',
         'name': 'Pay via PayPal',
-        'icon': 'assets/icons/paypal.png',
         'subtitle': 'Safe & secure payment',
-      },
-      {
-        'id': 'razorpay',
-        'name': 'Pay online',
-        'icon': 'assets/icons/razorpay.png',
-        'subtitle': 'Multiple payment options',
       },
     ];
 
@@ -248,7 +240,6 @@ class PaymentMethodScreen extends StatelessWidget {
                       id: method['id']!,
                       name: method['name']!,
                       subtitle: method['subtitle']!,
-                      iconPath: method['icon']!,
                       darkMode: darkMode,
                       controller: paymentController,
                     ),
@@ -311,7 +302,6 @@ class _PaymentMethodCard extends StatefulWidget {
   final String id;
   final String name;
   final String subtitle;
-  final String iconPath;
   final bool darkMode;
   final PaymentController controller;
 
@@ -319,7 +309,6 @@ class _PaymentMethodCard extends StatefulWidget {
     required this.id,
     required this.name,
     required this.subtitle,
-    required this.iconPath,
     required this.darkMode,
     required this.controller,
   });
@@ -380,19 +369,6 @@ class _PaymentMethodCardState extends State<_PaymentMethodCard>
           child: const Icon(
             Iconsax.wallet_2_bold,
             color: Color(0xFF00457C),
-            size: 24,
-          ),
-        );
-      case 'razorpay':
-        return Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFF528FF0).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(
-            Iconsax.money_2_bold,
-            color: Color(0xFF528FF0),
             size: 24,
           ),
         );

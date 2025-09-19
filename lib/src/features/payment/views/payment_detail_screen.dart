@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
+import '../../../data/repository/payment/payment_repository.dart';
 import '../../../utils/constants/colors.dart';
 import '../../../utils/helpers/helper_functions.dart';
+import '../controllers/payment_history_controller.dart';
 import '../models/payment_transaction_model.dart';
+import 'refund_request_screen.dart';
+import 'refund_detail_screen.dart';
 
 class PaymentDetailScreen extends StatelessWidget {
   final PaymentTransactionModel transaction;
@@ -13,6 +18,7 @@ class PaymentDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final darkMode = THelperFunctions.isDarkMode(context);
+    final controller = Get.find<PaymentHistoryController>();
 
     return Scaffold(
       backgroundColor: darkMode ? TColors.dark : TColors.light,
@@ -26,15 +32,6 @@ class PaymentDetailScreen extends StatelessWidget {
         ),
         backgroundColor: darkMode ? TColors.dark : TColors.white,
         elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: () => _shareTransactionDetails(context, transaction),
-            icon: Icon(
-              Icons.share,
-              color: TColors.primary,
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -96,7 +93,7 @@ class PaymentDetailScreen extends StatelessWidget {
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: darkMode ? TColors.darkGrey : TColors.white,
+                color: darkMode ? TColors.black : TColors.white,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
@@ -130,6 +127,13 @@ class PaymentDetailScreen extends StatelessWidget {
                   ),
                   _buildDetailRow(
                     context,
+                    'Invoice ID',
+                    transaction.invoiceId.isEmpty ? 'N/A' : transaction.invoiceId,
+                    Icons.description,
+                    darkMode,
+                  ),
+                  _buildDetailRow(
+                    context,
                     'Amount',
                     '${transaction.currency} ${transaction.amount.toStringAsFixed(2)}',
                     Icons.attach_money,
@@ -151,73 +155,12 @@ class PaymentDetailScreen extends StatelessWidget {
                   ),
                   _buildDetailRow(
                     context,
-                    'Status',
-                    transaction.status.toUpperCase(),
-                    _getStatusIcon(transaction.status),
-                    darkMode,
-                    isLast: true,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Service Details Card (Mock data for car service)
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: darkMode ? TColors.darkGrey : TColors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(darkMode ? 0.1 : 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Text(
-                      'Service Details',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: darkMode ? TColors.white : TColors.dark,
-                      ),
-                    ),
-                  ),
-                  _buildDetailRow(
-                    context,
-                    'Service Type',
-                    _getServiceTypeFromAmount(transaction.amount),
-                    Icons.car_repair,
-                    darkMode,
-                  ),
-                  _buildDetailRow(
-                    context,
-                    'Vehicle',
-                    'Toyota Camry 2020',
-                    Icons.directions_car,
-                    darkMode,
-                  ),
-                  _buildDetailRow(
-                    context,
-                    'Service Duration',
-                    '2 hours 15 minutes',
+                    'Refund Window',
+                    controller.isEligibleForRefund(transaction)
+                        ? 'Available until ${_formatRefundDeadline(transaction.transactionDateTime)}'
+                        : 'Expired (14 days limit)',
                     Icons.schedule,
                     darkMode,
-                  ),
-                  _buildDetailRow(
-                    context,
-                    'Technician',
-                    'John Smith',
-                    Icons.person,
-                    darkMode,
                     isLast: true,
                   ),
                 ],
@@ -226,59 +169,62 @@ class PaymentDetailScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
+            // Refunds Section (if any)
+            Obx(() {
+              final refunds = controller.getRefundsForPayment(transaction.transactionId);
+              if (refunds.isNotEmpty) {
+                return Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: darkMode ? TColors.black : TColors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(darkMode ? 0.1 : 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Icon(Icons.undo, color: TColors.orange),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Related Refunds (${refunds.length})',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: darkMode ? TColors.white : TColors.dark,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ...refunds.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final refund = entry.value;
+                        final isLast = index == refunds.length - 1;
+
+                        return _buildRefundRow(context, refund, darkMode, isLast);
+                      }).toList(),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox();
+            }),
+
+            if (controller.getRefundsForPayment(transaction.transactionId).isNotEmpty)
+              const SizedBox(height: 24),
+
             // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => _downloadReceipt(context, transaction),
-                    icon: const Icon(Icons.download),
-                    label: const Text('Download Receipt'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: TColors.primary,
-                      foregroundColor: TColors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _contactSupport(context, transaction),
-                    icon: const Icon(Icons.support_agent),
-                    label: const Text('Contact Support'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: TColors.primary,
-                      side: BorderSide(color: TColors.primary),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            // Additional Actions
-            if (transaction.status == 'completed')
-              SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: () => _requestRefund(context, transaction),
-                  icon: const Icon(Icons.undo),
-                  label: const Text('Request Refund'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.orange,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
+            _buildActionButtons(context, controller, darkMode),
           ],
         ),
       ),
@@ -359,39 +305,316 @@ class PaymentDetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildRefundRow(BuildContext context, PaymentTransactionModel refund, bool darkMode, bool isLast) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: InkWell(
+            onTap: () => Get.to(() => RefundDetailScreen(refund: refund)),
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: darkMode ? TColors.darkerGrey.withOpacity(0.3) : TColors.lightGrey,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _getRefundStatusColor(refund.refundStatus ?? 'processing').withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _getRefundStatusColor(refund.refundStatus ?? 'processing').withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.undo,
+                      color: _getRefundStatusColor(refund.refundStatus ?? 'processing'),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          refund.transactionId,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: darkMode ? TColors.white : TColors.dark,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${refund.currency} ${refund.amount.toStringAsFixed(2)} • ${_formatDate(refund.transactionDateTime)}',
+                          style: TextStyle(
+                            color: darkMode ? TColors.grey : TColors.darkGrey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getRefundStatusColor(refund.refundStatus ?? 'processing').withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      (refund.refundStatus ?? 'processing').toUpperCase(),
+                      style: TextStyle(
+                        color: _getRefundStatusColor(refund.refundStatus ?? 'processing'),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                    color: darkMode ? TColors.grey : TColors.darkGrey,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (!isLast)
+          Divider(
+            color: darkMode ? TColors.dark : TColors.light,
+            height: 1,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context, PaymentHistoryController controller, bool darkMode) {
+    return Obx(() {
+      if (transaction.status.toLowerCase() != 'succeeded') {
+        return const SizedBox();
+      }
+
+      final isEligible = controller.isEligibleForRefund(transaction);
+      final hasPending = controller.hasPendingRefund(transaction.transactionId);
+      final rejectedRefunds = controller.getRefundsForPayment(transaction.transactionId)
+          .where((refund) => refund.refundStatus == 'rejected').toList();
+
+      if (!isEligible && rejectedRefunds.isEmpty && !hasPending) {
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: darkMode ? TColors.black : TColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: TColors.grey.withOpacity(0.3)),
+          ),
+          child: Column(
+            children: [
+              Icon(Icons.schedule_outlined, color: TColors.grey, size: 32),
+              const SizedBox(height: 8),
+              Text(
+                'Refund Window Expired',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: darkMode ? TColors.white : TColors.dark,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Refund requests must be submitted within 14 days of payment',
+                style: TextStyle(
+                  color: darkMode ? TColors.grey : TColors.darkGrey,
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        );
+      }
+
+      if (hasPending) {
+        final pendingRefund = controller.getRefundsForPayment(transaction.transactionId)
+            .firstWhere((refund) => refund.refundStatus == 'processing');
+
+        return Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: TColors.refundProcessing.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: TColors.refundProcessing.withOpacity(0.3)),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.pending_actions, color: TColors.refundProcessing, size: 32),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Refund Request Pending',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: TColors.refundProcessing,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'We\'re reviewing your refund request. This usually takes 3-5 business days.',
+                    style: TextStyle(
+                      color: darkMode ? TColors.grey : TColors.darkGrey,
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: () => _cancelRefund(context, pendingRefund),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: TColors.red,
+                  side: BorderSide(color: TColors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Cancel Refund Request',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => Get.to(() => RefundRequestScreen(), arguments: transaction),
+          icon: const Icon(Icons.undo),
+          label: Text(rejectedRefunds.isNotEmpty ? 'Request Refund Again' : 'Request Refund'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: TColors.orange,
+            foregroundColor: TColors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  void _cancelRefund(BuildContext context, PaymentTransactionModel refund) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Cancel Refund Request'),
+        content: Text('Are you sure you want to cancel this refund request? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text('Keep Request'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Get.back();
+              try {
+                final paymentRepo = PaymentRepository.instance;
+                await paymentRepo.cancelRefundRequest(refund.transactionId);
+
+                // Refresh the controller data
+                final controller = Get.find<PaymentHistoryController>();
+                await controller.refreshData();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Refund request cancelled successfully'),
+                    backgroundColor: TColors.success,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to cancel refund request'),
+                    backgroundColor: TColors.error,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: TColors.red),
+            child: Text('Cancel Request'),
+          ),
+        ],
+      ),
+    );
+  }
+
   List<Color> _getStatusGradient(String status) {
     switch (status.toLowerCase()) {
-      case 'completed':
-        return [Colors.green.shade400, Colors.green.shade600];
+      case 'succeeded':
+        return [TColors.paymentSucceeded.withOpacity(0.8), TColors.paymentSucceeded];
       case 'pending':
-        return [Colors.orange.shade400, Colors.orange.shade600];
+        return [TColors.paymentPending.withOpacity(0.8), TColors.paymentPending];
       case 'failed':
-        return [Colors.red.shade400, Colors.red.shade600];
+        return [TColors.paymentFailed.withOpacity(0.8), TColors.paymentFailed];
       case 'refunded':
-        return [Colors.blue.shade400, Colors.blue.shade600];
+        return [TColors.paymentRefunded.withOpacity(0.8), TColors.paymentRefunded];
       default:
-        return [Colors.grey.shade400, Colors.grey.shade600];
+        return [TColors.grey.withOpacity(0.8), TColors.grey];
     }
   }
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'completed':
-        return Colors.green;
+      case 'succeeded':
+        return TColors.paymentSucceeded;
       case 'pending':
-        return Colors.orange;
+        return TColors.paymentPending;
       case 'failed':
-        return Colors.red;
+        return TColors.paymentFailed;
       case 'refunded':
-        return Colors.blue;
+        return TColors.paymentRefunded;
       default:
-        return Colors.grey;
+        return TColors.grey;
+    }
+  }
+
+  Color _getRefundStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return TColors.refundApproved;
+      case 'rejected':
+        return TColors.refundRejected;
+      case 'processing':
+        return TColors.refundProcessing;
+      case 'cancelled':
+        return TColors.refundCancelled;
+      default:
+        return TColors.grey;
     }
   }
 
   IconData _getStatusIcon(String status) {
     switch (status.toLowerCase()) {
-      case 'completed':
+      case 'succeeded':
         return Icons.check_circle;
       case 'pending':
         return Icons.schedule;
@@ -416,6 +639,8 @@ class PaymentDetailScreen extends StatelessWidget {
         return Icons.android;
       case 'bank transfer':
         return Icons.account_balance;
+      case 'stripe':
+        return Icons.credit_card;
       default:
         return Icons.payment;
     }
@@ -436,96 +661,33 @@ class PaymentDetailScreen extends StatelessWidget {
     return '$month $day, $year at $hour:$minute';
   }
 
-  String _getServiceTypeFromAmount(double amount) {
-    if (amount < 30) return 'Car Wash';
-    if (amount < 60) return 'Oil Change';
-    if (amount < 100) return 'Tire Service';
-    if (amount < 150) return 'Battery Service';
-    if (amount < 200) return 'Engine Service';
-    return 'Full Service Package';
+  String _formatRefundDeadline(DateTime paymentDate) {
+    final deadline = paymentDate.add(const Duration(days: 14));
+    return _formatFullDate(deadline);
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date).inDays;
+
+    if (difference == 0) {
+      return 'Today';
+    } else if (difference == 1) {
+      return 'Yesterday';
+    } else if (difference < 7) {
+      return '${difference}d ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 
   void _copyToClipboard(BuildContext context, String text) {
-    // Implement clipboard copy
+    Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Copied to clipboard'),
         backgroundColor: TColors.primary,
         duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
-  void _shareTransactionDetails(BuildContext context, PaymentTransactionModel transaction) {
-    // Implement share functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Share functionality would be implemented here'),
-        backgroundColor: TColors.primary,
-      ),
-    );
-  }
-
-  void _downloadReceipt(BuildContext context, PaymentTransactionModel transaction) {
-    // Implement download receipt
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Receipt download started'),
-        backgroundColor: TColors.primary,
-      ),
-    );
-  }
-
-  void _contactSupport(BuildContext context, PaymentTransactionModel transaction) {
-    // Implement contact support
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Contact Support'),
-        content: Text('Would you like to contact support regarding transaction ${transaction.transactionId}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Get.back();
-              // Open support chat or email
-            },
-            child: Text('Contact'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _requestRefund(BuildContext context, PaymentTransactionModel transaction) {
-    // Implement refund request
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Request Refund'),
-        content: Text('Are you sure you want to request a refund for this transaction?'),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Get.back();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Refund request submitted'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: Text('Request Refund'),
-          ),
-        ],
       ),
     );
   }
