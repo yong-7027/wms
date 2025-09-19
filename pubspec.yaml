@@ -99,15 +99,15 @@ dependencies:
   # Optional: For video thumbnail generation
   video_thumbnail: ^0.5.3
 
-  # Optional: For file size and type validation
-  mime: ^1.0.4
+#  # Optional: For file size and type validation
+#  mime: ^1.0.4
 
   # Optional: For better image handling
-  cached_network_image: ^3.3.0
+#  cached_network_image: ^3.3.0
   confetti: ^0.8.0
-  path: ^1.9.1
+#  path: ^1.9.1
   image: ^4.5.4
-  flutter_image_compress: ^2.4.0
+#  flutter_image_compress: ^2.4.0
 
 dev_dependencies:
   flutter_test:
